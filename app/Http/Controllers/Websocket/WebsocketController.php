@@ -3,14 +3,24 @@
 namespace App\Http\Controllers\Websocket;
 
 use App\Http\Controllers\Controller;
+use App\User;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 
 class WebsocketController extends Controller
 {
-    public function chat(Request $request)
+    public function __construct(Request $request)
     {
-        $
+        $this->checkLogin($request->get('token'));
+    }
+
+    private function checkLogin($token)
+    {
+        $user = new User();
+    }
+    public function open(Request $request)
+    {
+
         $client_id = $request->get('client_id');
         $uid = $request->get('user_id');
         $message = $request->get('content');
@@ -28,9 +38,13 @@ class WebsocketController extends Controller
 
     }
 
-    public function onMessage()
+    public function message(Request $request)
     {
+        $uid = $request->get('user_id');
+        $to_uid = $request->get('to_user_id');
+        $message = $request->get('message');
         Gateway::$registerAddress = '127.0.0.1:1236';
+
 
     }
 }
