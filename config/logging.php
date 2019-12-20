@@ -95,6 +95,24 @@ return [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
         ],
+        'websocket' => [
+            'driver' => 'daily',
+            'path' => storage_path('websocket/logs/websocket.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+        'websocket_error' => [
+            'driver' => 'daily',
+            'path' => storage_path('websocket/logs/websocket_error.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+        'websocket_message' => [
+            'driver' => 'daily',
+            'path' => storage_path('websocket/logs/websocket_message.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
     ],
 
 ];

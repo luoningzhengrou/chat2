@@ -2,7 +2,7 @@
 
 use Illuminate\Http\Request;
 
-/*
+/*out
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
@@ -13,6 +13,14 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('im')->namespace('Api')->group(function (){
+    Route::post('bind', 'WebsocketController@bind');
+    Route::post('chat', 'WebsocketController@chat');
+    Route::post('user', 'UserController@find');
+    Route::post('out', 'UserController@send');
+    Route::post('inc', 'UserController@add');
+    Route::post('entry', 'UserController@list');
+    Route::post('past', 'UserController@history');
+    Route::post('cutout', 'UserController@delete');
 });
+
