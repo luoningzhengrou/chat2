@@ -11,8 +11,4 @@ class Message extends Model
     protected $fillable = ['user_id','is_send'];
     public $incrementing = true;
 
-    public function messages()
-    {
-        return $this->hasMany('App\User');
-    }
 }

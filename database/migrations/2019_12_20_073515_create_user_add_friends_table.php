@@ -17,9 +17,11 @@ class CreateUserAddFriendsTable extends Migration
             $table->bigIncrements('id');
             $table->integer('user_id')->unsigned()->comment('申请好友ID');
             $table->integer('to_user_id')->unsigned()->comment('被申请好友ID');
-            $table->string('info')->comment('验证信息');
+            $table->string('info')->default('')->comment('验证信息');
+            $table->string('r_info')->default('')->comment('拒绝信息');
             $table->tinyInteger('is_handle')->unsigned()->default(0)->comment('是否已处理');
             $table->tinyInteger('status')->unsigned()->default(0)->comment('处理结果 1 同意  2 拒绝');
+            $table->timestamp('verified_at');
             $table->timestamps();
         });
     }

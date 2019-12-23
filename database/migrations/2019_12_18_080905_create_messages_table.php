@@ -17,8 +17,9 @@ class CreateMessagesTable extends Migration
             $table->bigIncrements('id');
             $table->integer('user_id')->unsigned()->comment('发送人ID');
             $table->integer('to_user_id')->unsigned()->comment('接收人ID');
-            $table->string('content',2048)->nullable()->comment('消息');
+            $table->string('content')->default('')->comment('消息');
             $table->tinyInteger('is_send')->unsigned()->default(0)->comment('是否推送到');
+            $table->tinyInteger('is_read')->unsigned()->default(0)->comment('是否已读');
             $table->timestamps();
         });
     }

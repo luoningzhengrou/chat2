@@ -9,4 +9,9 @@ class UserBuddy extends Model
     protected $table = 'user_buddies';
     protected $fillable = ['user_id','buddy'];
 
+    public function username()
+    {
+        return $this->hasOne('App\User');
+    }
+
 }

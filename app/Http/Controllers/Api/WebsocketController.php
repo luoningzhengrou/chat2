@@ -36,7 +36,7 @@ class WebsocketController extends Controller
             $this->msg = $exception->getMessage();
             Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $this->msg . ';');
         }
-        return response()->json(['error_code'=>$this->code,'msg'=>$this->msg,'response_info'=>$this->data]);
+        return $this->response();
     }
 
     public function chat(Request $request, Message $message)
@@ -48,19 +48,21 @@ class WebsocketController extends Controller
         if (Gateway::isUidOnline($uid) == 0){
             $this->code = 400;
             $this->msg = '你已离线';
-            return response()->json(['error_code'=>$this->code,'msg'=>$this->msg,'response_info'=>$this->data]);
+            return $this->response();
         }
         $message->fill($request->all());
         $message->user_id = $uid;
         $message->to_user_id = $to_uid;
         $message->content = $content;
         $message->is_send = 1;
+        $data['from_user_id'] = $uid;
+        $data['content'] = $content;
         if (Gateway::isUidOnline($to_uid) == 0){
             // 对方已离线,标记为未推送
             $message->is_send = 0;
         }else{
             try {
-                Gateway::sendToUid($to_uid, $content);
+                Gateway::sendToUid($to_uid, json_encode($data));
                 Log::channel('websocket_message')->info('user_id: ' . $uid . ' send to user_id: ' . $to_uid . ' content: ' . $content . ';');
             }catch (\Exception $exception){
                 $message->is_send = 0;
@@ -69,7 +71,7 @@ class WebsocketController extends Controller
             }
         }
         $message->save();
-        return response()->json(['error_code'=>$this->code,'msg'=>$this->msg,'response_info'=>$this->data]);
+        return $this->response();
     }
 
 }

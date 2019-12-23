@@ -22,5 +22,6 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('entry', 'UserController@list');
     Route::post('past', 'UserController@history');
     Route::post('cutout', 'UserController@delete');
+    Route::post('all', 'UserController@getAllMessage');
 });
 

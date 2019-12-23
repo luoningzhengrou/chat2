@@ -15,11 +15,22 @@ class Controller extends BaseController
 
     public function __construct(Request $request)
     {
-//        $token = $request->get('token');
-//        if (!User::find(1)->where('token',$token)->first()){
-//            $this->error_code = 1;
-//            $this->msg = '未登录';
-//            return response()->json(['error_code'=>$this->error_code,'msg'=>$this->msg,'response_info'=>$this->response_info]);
-//        }
+        $token = $request->get('token');
+        if (!User::where('token',$token)->first()){
+            $this->code = 403;
+            $this->msg = '未登录';
+            return $this->response();
+        }
     }
+
+    // 返回公用方法
+    public function response()
+    {
+        return [
+            'code' => $this->code,
+            'msg'  => $this->msg,
+            'data' => $this->data
+        ];
+    }
+
 }

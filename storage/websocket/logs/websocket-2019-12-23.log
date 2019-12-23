@@ -1,0 +1,14 @@
+[2019-12-23 03:51:09] local.INFO: user_id 1 bind client_id 7f00000108fc00000001;  
+[2019-12-23 03:55:37] local.INFO: user_id 1 bind client_id 7f00000108fc00000001;  
+[2019-12-23 05:57:46] local.INFO: user_id 2 bind client_id 7f00000108fc00000002;  
+[2019-12-23 05:59:03] local.INFO: user_id 2 bind client_id 7f00000108fc00000002;  
+[2019-12-23 07:39:39] local.INFO: user_id 1 bind client_id 7f00000108fc00000003;  
+[2019-12-23 07:39:59] local.INFO: user_id 1 bind client_id 7f00000108fc00000003;  
+[2019-12-23 07:41:10] local.INFO: user_id 2 bind client_id 7f00000108fc00000004;  
+[2019-12-23 08:00:39] local.INFO: user_id 46 bind client_id 7f00000108fc00000005;  
+[2019-12-23 08:02:28] local.INFO: user_id 46 bind client_id 7f00000108fc00000005;  
+[2019-12-23 08:02:38] local.INFO: user_id 46 bind client_id 7f00000108fc00000005;  
+[2019-12-23 08:03:17] local.INFO: user_id 47 bind client_id 7f00000108fc00000006;  
+[2019-12-23 08:03:30] local.INFO: user_id 47 bind client_id 7f00000108fc00000006;  
+[2019-12-23 09:07:08] local.INFO: user_id 47 bind client_id 7f00000108fc00000007;  
+[2019-12-23 09:08:04] local.INFO: user_id 46 bind client_id 7f00000108fc00000008;  
