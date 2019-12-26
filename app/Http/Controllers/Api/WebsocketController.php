@@ -11,34 +11,29 @@ use Illuminate\Support\Facades\Log;
 class WebsocketController extends Controller
 {
 
-    /**
-     * 绑定
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+    // 绑定
     public function bind(Request $request)
     {
         $uid = $request->get('user_id');
         $client_id = $request->get('client_id');
-        try {
-            Gateway::$registerAddress = '127.0.0.1:1236';
-            Gateway::bindUid($client_id,$uid);
-            Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
-            // 如果有未推送成功消息则返回
-            $where = ['to_user_id'=>$uid,'is_send'=>0];
-            $messages = Message::where($where)->get(['user_id','to_user_id','content','created_at']);
-            if ($messages){
-                $this->data = $messages;
+        if (!empty($client_id)){
+            try {
+                Gateway::$registerAddress = '127.0.0.1:1236';
+                Gateway::bindUid($client_id,$uid);
+                Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
+            }catch (\Exception $exception){
+                $this->code = 500;
+                $this->msg = $exception->getMessage();
+                Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $this->msg . ';');
             }
-            Message::where($where)->update(['is_send'=>1]);
-        }catch (\Exception $exception){
-            $this->code = 500;
-            $this->msg = $exception->getMessage();
-            Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $this->msg . ';');
+        }else{
+            $this->code = 403;
+            $this->msg = 'client_id can\'t be null!';
         }
         return $this->response();
     }
 
+    // 聊天
     public function chat(Request $request, Message $message)
     {
         $uid = $request->get('user_id');
@@ -56,10 +51,13 @@ class WebsocketController extends Controller
         $message->content = $content;
         $message->is_send = 1;
         $data['from_user_id'] = $uid;
+        $data['from_username'] = User::where('id',$uid)->value('nickname');
         $data['content'] = $content;
+        $data['send_time'] = date('Y-m-d H:i:s');
         if (Gateway::isUidOnline($to_uid) == 0){
             // 对方已离线,标记为未推送
             $message->is_send = 0;
+            Log::channel('websocket_message')->info('user_id: ' . $uid . ' send to user_id: ' . $to_uid . ' content: ' . $content . ';');
         }else{
             try {
                 Gateway::sendToUid($to_uid, json_encode($data));

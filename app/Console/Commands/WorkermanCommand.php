@@ -12,7 +12,7 @@ use Workerman\Worker;
 
 class WorkermanCommand extends Command
 {
-    protected $signature = 'workman {action} {--d}';
+    protected $signature = 'workman {action}';
 
     protected $description = 'Start a Workerman server.';
 
