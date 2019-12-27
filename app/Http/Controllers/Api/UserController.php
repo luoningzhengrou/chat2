@@ -178,6 +178,7 @@ class UserController extends Controller
         $list = Message::where(['to_user_id'=>$user_id,'is_send'=>0])->distinct('user_id')->get('user_id');
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
+            $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
             $v['messages'] = Message::where(['user_id'=>$v['user_id'],'is_send'=>0])->get(['user_id','to_user_id','content','created_at']);
         }
         $this->data = $list;
