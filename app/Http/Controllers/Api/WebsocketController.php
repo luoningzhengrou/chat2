@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Models\UserBuddy;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +44,17 @@ class WebsocketController extends Controller
         if (Gateway::isUidOnline($uid) == 0){
             $this->code = 400;
             $this->msg = '你已离线';
+            return $this->response();
+        }
+        if (!$buddy = UserBuddy::where('user_id',$uid)->value('buddy')){
+            $this->code = 404;
+            $this->msg = '请先添加好友';
+            return $this->response();
+        }
+        $buddyArr = explode(',',$buddy);
+        if (!in_array($to_uid,$buddyArr)){
+            $this->code = 404;
+            $this->msg = '请先添加好友';
             return $this->response();
         }
         $message->fill($request->all());

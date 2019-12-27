@@ -26,7 +26,6 @@ class WorkermanCommand extends Command
 
         $argv[0] = 'wk';
         $argv[1] = $action;
-        $argv[2] = $this->option('d') ? '-d' : '';
 
         $this->start();
     }
