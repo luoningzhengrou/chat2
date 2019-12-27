@@ -26,11 +26,11 @@ class Controller extends BaseController
     // 返回公用方法
     public function response()
     {
-        return [
+        return json_encode([
             'code' => $this->code,
             'msg'  => $this->msg,
             'data' => $this->data
-        ];
+        ]);
     }
 
 }
