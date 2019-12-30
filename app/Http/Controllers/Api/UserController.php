@@ -73,6 +73,7 @@ class UserController extends Controller
             foreach ($data as $k => $v){
                 $this->data[$k]['user_id'] = $v['user_id'];
                 $this->data[$k]['username'] = User::where('id',$v['user_id'])->value('nickname');
+                $this->data[$k]['avatar'] = User::where('id',$v['user_id'])->value('avatar');
                 $this->data[$k]['info'] = $v['info'];
                 $this->data[$k]['send_time'] = date('Y-m-d H:i:s',strtotime($v['created_at']));
             }
