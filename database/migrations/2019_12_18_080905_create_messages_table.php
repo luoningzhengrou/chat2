@@ -20,6 +20,8 @@ class CreateMessagesTable extends Migration
             $table->string('content')->default('')->comment('消息');
             $table->tinyInteger('is_send')->unsigned()->default(0)->comment('是否推送到');
             $table->tinyInteger('is_read')->unsigned()->default(0)->comment('是否已读');
+            $table->tinyInteger('is_show')->unsigned()->default(1)->comment('0 删除');
+            $table->tinyInteger('to_is_show')->unsigned()->default(1)->comment('to 0 删除');
             $table->timestamps();
         });
     }
