@@ -113,6 +113,12 @@ return [
             'level' => 'debug',
             'days' => 14,
         ],
+        'api_error' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/api_error.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
     ],
 
 ];

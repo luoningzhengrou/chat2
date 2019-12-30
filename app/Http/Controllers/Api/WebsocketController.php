@@ -12,7 +12,11 @@ use Illuminate\Support\Facades\Log;
 class WebsocketController extends Controller
 {
 
-    // 绑定
+    /**
+     * 绑定
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function bind(Request $request)
     {
         $uid = $request->get('user_id');
@@ -24,7 +28,7 @@ class WebsocketController extends Controller
                 Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
             }catch (\Exception $exception){
                 $this->code = 500;
-                $this->msg = $exception->getMessage();
+                $this->msg = 'Failed';
                 Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $this->msg . ';');
             }
         }else{
@@ -34,7 +38,12 @@ class WebsocketController extends Controller
         return $this->response();
     }
 
-    // 聊天
+    /**
+     * 聊天
+     * @param Request $request
+     * @param Message $message
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function chat(Request $request, Message $message)
     {
         $uid = $request->get('user_id');
@@ -46,16 +55,22 @@ class WebsocketController extends Controller
             $this->msg = '你已离线';
             return $this->response();
         }
-        if (!$buddy = UserBuddy::where('user_id',$uid)->value('buddy')){
+        if (!UserBuddy::where(['user_id'=>$uid,'to_user_id'=>$to_uid])->first() || !UserBuddy::where(['user_id'=>$to_uid,'to_user_id'=>$uid])->first()){
             $this->code = 404;
             $this->msg = '请先添加好友';
             return $this->response();
         }
-        $buddyArr = explode(',',$buddy);
-        if (!in_array($to_uid,$buddyArr)){
-            $this->code = 404;
-            $this->msg = '请先添加好友';
-            return $this->response();
+        if ($user = UserBuddy::where(['user_id'=>$to_uid,'to_user_id'=>$uid])->first()){
+            if ($user['status'] == 0){
+                $this->code = 403;
+                $this->msg = '你不是对方的好友';
+                return $this->response();
+            }
+            if ($user['status'] == 2){
+                $this->code = 403;
+                $this->msg = '消息已发出，但对方已拒绝接收';
+                return $this->response();
+            }
         }
         $message->fill($request->all());
         $message->user_id = $uid;
@@ -76,7 +91,7 @@ class WebsocketController extends Controller
                 Log::channel('websocket_message')->info('user_id: ' . $uid . ' send to user_id: ' . $to_uid . ' content: ' . $content . ';');
             }catch (\Exception $exception){
                 $message->is_send = 0;
-                $this->msg = $exception->getMessage();
+                $this->msg = 'Failed';
                 Log::channel('websocket_error')->info('user_id: ' . $uid . ' send to user_id: ' . $to_uid . ' content: ' . $content . ' failed;');
             }
         }
