@@ -68,7 +68,7 @@ class UserController extends Controller
     public function getAddInfo(Request $request)
     {
         $user_id = $request->get('user_id');
-        $data = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'status'=>0])->orderBy('created_at','desc')->get(['user_id','info','created_at']);
+        $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('created_at','desc')->get(['user_id','info','created_at','status']);
         if ($data){
             foreach ($data as $k => $v){
                 $this->data[$k]['user_id'] = $v['user_id'];
@@ -76,6 +76,7 @@ class UserController extends Controller
                 $this->data[$k]['avatar'] = User::where('id',$v['user_id'])->value('avatar');
                 $this->data[$k]['info'] = $v['info'];
                 $this->data[$k]['send_time'] = date('Y-m-d H:i:s',strtotime($v['created_at']));
+                $this->data[$k]['status'] = $v['status'];
             }
         }
         return $this->response();
