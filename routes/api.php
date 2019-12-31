@@ -30,5 +30,6 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('blackList', 'UserController@blackList');   //黑名单列表
     Route::post('shield', 'UserController@shield');         //显示隐藏权限
     Route::post('cutout', 'UserController@delete');         //删除好友
+    Route::post('up', 'UserController@top');                //置顶/取消
 });
 

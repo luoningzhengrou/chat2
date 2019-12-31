@@ -359,4 +359,30 @@ class UserController extends Controller
         return $this->response();
     }
 
+    /**
+     * 置顶/取消
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function top(Request $request)
+    {
+        $user_id = $request->get('user_id');
+        $top_user_id = $request->get('up_user_id');
+        try {
+            $user = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$top_user_id])->first();
+            if ($user['is_top'] == 0){
+                $user->is_top = 1;
+            }else{
+                $user->is_top = 0;
+            }
+            $this->data = ['is_top'=>$user->is_top];
+            $user->save();
+        }catch (\Exception $exception){
+            $this->code = 500;
+            $this->msg = 'Failed';
+            Log::channel('api_error')->info($exception->getMessage());
+        }
+        return $this->response();
+    }
+
 }
