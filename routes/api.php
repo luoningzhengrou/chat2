@@ -32,5 +32,6 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('cutout', 'UserController@delete');         //删除好友
     Route::post('up', 'UserController@top');                //置顶/取消
     Route::post('pStatus', 'UserController@phoneStatus');   //获取手机状态
+    Route::post('userId', 'UserController@getUserId');      //获取用户ID
 });
 
