@@ -403,7 +403,7 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        if ($status = UserBuddy::where(['user_id'=>$to_user_id,'to_user_id'=>$user_id,'status'=>1])->value('is_show_phone')){
+        if ($status = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'status'=>1])->value('is_show_phone')){
             $this->data['status'] = $status;
         }else{
             $this->code = 404;
@@ -419,7 +419,6 @@ class UserController extends Controller
     public function getUserId(Request $request)
     {
         $token = $request->get('token');
-//        echo $token;exit;
         if ($id = User::where(['token'=>$token])->value('id')){
             $this->data['user_id'] = $id;
         }else{
