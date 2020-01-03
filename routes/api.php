@@ -31,5 +31,6 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('shield', 'UserController@shield');         //显示隐藏权限
     Route::post('cutout', 'UserController@delete');         //删除好友
     Route::post('up', 'UserController@top');                //置顶/取消
+    Route::post('pStatus', 'UserController@phoneStatus');   //获取手机状态
 });
 

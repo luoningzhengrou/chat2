@@ -385,4 +385,17 @@ class UserController extends Controller
         return $this->response();
     }
 
+    public function phoneStatus(Request $request)
+    {
+        $user_id = $request->get('user_id');
+        $to_user_id = $request->get('to_user_id');
+        if ($status = UserBuddy::where(['user_id'=>$to_user_id,'to_user_id'=>$user_id,'status'=>1])->value('is_show_phone')){
+            $this->data['status'] = $status;
+        }else{
+            $this->code = 404;
+            $this->msg = 'Failed';
+        }
+        return $this->response();
+    }
+
 }
