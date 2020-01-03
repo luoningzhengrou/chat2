@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
+    protected $phone_status = [0,1];
 
     /**
      * 查找好友 通过手机号
@@ -403,7 +404,8 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        if ($status = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'status'=>1])->value('is_show_phone')){
+        $status = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'status'=>1])->value('is_show_phone');
+        if (in_array($status,$this->phone_status)){
             $this->data['status'] = $status;
         }else{
             $this->code = 404;
