@@ -43,15 +43,20 @@ class UserController extends Controller
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
         $info = $request->get('info');
-        try {
-            $addFriend->user_id = $user_id;
+        if (!$addFriend = UserAddFriend::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'status'=>0])->first()){
+            try {
+                $addFriend->user_id = $user_id;
+                $addFriend->info = $info;
+                $addFriend->to_user_id = $to_user_id;
+                $addFriend->save();
+            }catch (\Exception $exception){
+                $this->code = 500;
+                $this->msg = 'Failed';
+                Log::channel('api_error')->info($exception->getMessage());
+            }
+        }else{
             $addFriend->info = $info;
-            $addFriend->to_user_id = $to_user_id;
             $addFriend->save();
-        }catch (\Exception $exception){
-            $this->code = 500;
-            $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
         }
         Gateway::$registerAddress = '127.0.0.1:1236';
         if (Gateway::isUidOnline($to_user_id)){
