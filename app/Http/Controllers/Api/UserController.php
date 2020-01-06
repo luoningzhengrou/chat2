@@ -147,9 +147,10 @@ class UserController extends Controller
     public function list(Request $request)
     {
         $user_id = $request->get('user_id');
-        $users = UserBuddy::where(['user_id'=>$user_id,'status'=>1])->get(['to_user_id as user_id','is_show_phone']);
+        $users = UserBuddy::where(['user_id'=>$user_id,'status'=>1])->get(['to_user_id as user_id','is_show_phone','is_top']);
         foreach ($users as $k => $v){
             $this->data[$k]['user_id'] = $v['user_id'];
+            $this->data[$k]['is_top'] = $v['is_top'];
             $user = User::where('id',$v['user_id'])->first(['id','nickname','avatar','area','sex']);
             $this->data[$k]['username'] = $user['nickname'];
             $this->data[$k]['avatar'] = $user['avatar'];
