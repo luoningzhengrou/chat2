@@ -51,6 +51,11 @@ class WebsocketController extends Controller
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
         $content = $request->get('content');
+        if (mb_strlen($content) > 2048){
+            $this->code = 502;
+            $this->msg = 'Message is too long!';
+            return $this->response();
+        }
         Gateway::$registerAddress = '127.0.0.1:1236';
         self::checkOnline($uid) && self::checkFriend($uid,$tid) && self::checkBlackList($uid,$tid);
         $message->fill($request->all());
@@ -154,6 +159,11 @@ class WebsocketController extends Controller
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
         $number = $request->get('number');
+        if ($number > 9){
+            $this->msg = 502;
+            $this->msg = 'Picture is too many';
+            return $this->response();
+        }
         $disk = Storage::disk('oss');
         $date = date('Y-m-d');
         Gateway::$registerAddress = '127.0.0.1:1236';
