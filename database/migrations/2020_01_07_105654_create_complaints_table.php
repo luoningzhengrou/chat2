@@ -15,8 +15,8 @@ class CreateComplaintsTable extends Migration
     {
         Schema::create('complaints', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->integer('user_id')->unsigned()->comment('投诉人ID');
-            $table->integer('c_user_id')->unsigned()->comment('被投诉人ID');
+            $table->integer('user_id')->unsigned()->comment('被投诉人ID');
+            $table->integer('c_user_id')->unsigned()->comment('投诉人ID');
             $table->integer('ban_id')->unsigned()->comment('投诉类型');
             $table->string('info')->default('')->comment('投诉理由');
             $table->string('picture')->comment('图片');
@@ -25,6 +25,7 @@ class CreateComplaintsTable extends Migration
             $table->tinyInteger('status')->unsigned()->default(0)->comment('状态 0 未处理 1 禁言中 2 已忽略 4 已解封');
             $table->integer('admin_id')->unsigned()->comment('处理管理员ID');
             $table->timestamp('p_time')->nullable()->comment('处理时间');
+            $table->timestamp('t_time')->nullable()->comment('解除时间');
             $table->timestamps();
         });
     }

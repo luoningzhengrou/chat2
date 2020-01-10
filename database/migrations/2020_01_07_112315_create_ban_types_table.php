@@ -16,7 +16,8 @@ class CreateBanTypesTable extends Migration
         Schema::create('ban_types', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('info')->comment('处理结果');
-            $table->tinyInteger('status')->unsigned()->comment('状态 1 正常 0 禁用');
+            $table->tinyInteger('status')->unsigned()->default(0)->comment('状态 1 正常 0 禁用');
+            $table->tinyInteger('is_home')->unsigned()->default(0)->comment('前台是否展示');
             $table->integer('admin_id')->unsigned()->comment('管理员ID');
             $table->timestamps();
         });

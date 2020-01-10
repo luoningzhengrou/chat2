@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Ban_types;
+use App\Models\Complaints;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBuddy;
@@ -57,7 +59,7 @@ class WebsocketController extends Controller
             return $this->response();
         }
         Gateway::$registerAddress = '127.0.0.1:1236';
-        self::checkOnline($uid) && self::checkFriend($uid,$tid) && self::checkBlackList($uid,$tid);
+        self::checkOnline($uid) && self::checkFriend($uid,$tid) && self::checkBlackList($uid,$tid) && self::checkBan($uid);
         $message->fill($request->all());
         $message->user_id = $uid;
         $message->to_user_id = $tid;
@@ -122,6 +124,15 @@ class WebsocketController extends Controller
         }
     }
 
+    private function checkBan($uid){
+        $db = new Complaints();
+        if ($data = $db->where(['user_id'=>$uid,'status'=>1])->orderBy('t_time','desc')->first()){
+            $this->code = 403;
+            $this->msg = '你已被封禁至' . $data['t_time'];
+            return $this->response();
+        }
+    }
+
     /**
      * 推送
      * @param $uid
@@ -167,7 +178,7 @@ class WebsocketController extends Controller
         $disk = Storage::disk('oss');
         $date = date('Y-m-d');
         Gateway::$registerAddress = '127.0.0.1:1236';
-        self::checkOnline($uid) && self::checkFriend($uid,$tid) && self::checkBlackList($uid,$tid);
+        self::checkOnline($uid) && self::checkFriend($uid,$tid) && self::checkBlackList($uid,$tid) && self::checkBan($uid);
         DB::beginTransaction();
         try {
             for ($i = 1; $i <= $number; $i++){
@@ -179,7 +190,7 @@ class WebsocketController extends Controller
                 $data['from_username'] = User::where('id',$uid)->value('nickname');
                 $data['content'] = $url;
                 $data['send_time'] = date('Y-m-d H:i:s');
-                $is_send = $this->push($uid,$tid,$data);
+                $is_send = $this->push($uid,$tid,$data);    //推送
                 Message::create(['user_id'=>$uid,'to_user_id'=>$tid,'content'=>$url,'is_send'=>$is_send]);
             }
             DB::commit();

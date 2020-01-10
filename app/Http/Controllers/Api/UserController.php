@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Ban_types;
+use App\Models\Complaints;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserAddFriend;
@@ -10,6 +12,7 @@ use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -53,7 +56,7 @@ class UserController extends Controller
             }catch (\Exception $exception){
                 $this->code = 500;
                 $this->msg = 'Failed';
-                Log::channel('api_error')->info($exception->getMessage());
+                $this->apiLog($exception->getMessage());
             }
         }else{
             $addFriends->info = $info;
@@ -126,7 +129,7 @@ class UserController extends Controller
                 }catch (\Exception $exception){
                     $this->code = 500;
                     $this->msg = 'Failed';
-                    Log::channel('api_error')->info($exception->getMessage());
+                    $this->apiLog($exception->getMessage());
                     DB::rollBack();
                 }
             }else{
@@ -241,7 +244,7 @@ class UserController extends Controller
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -261,7 +264,7 @@ class UserController extends Controller
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -287,7 +290,7 @@ class UserController extends Controller
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -338,7 +341,7 @@ class UserController extends Controller
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -365,7 +368,7 @@ class UserController extends Controller
             DB::rollBack();
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -391,7 +394,7 @@ class UserController extends Controller
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
-            Log::channel('api_error')->info($exception->getMessage());
+            $this->apiLog($exception->getMessage());
         }
         return $this->response();
     }
@@ -428,6 +431,85 @@ class UserController extends Controller
             $this->code = 404;
             $this->msg = 'Failed';
         }
+        return $this->response();
+    }
+
+    /**
+     * 检查是否封禁
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkBan(Request $request)
+    {
+        $uid = $request->get('user_id');
+        $db = new Complaints();
+        if ($data = $db->where(['user_id'=>$uid,'status'=>1])->orderBy('t_time','desc')->first()){
+            $this->data['date'] = $data['t_time'];
+            $this->data['info'] = Ban_types::where(['id'=>$data['c_ban_id']])->value('info');
+        }
+        return $this->response();
+    }
+
+    /**
+     * 投诉
+     * @param Request $request
+     * @param Complaints $complaints
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function complaint(Request $request, Complaints $complaints)
+    {
+        $number = $request->get('number');
+        if ($number > 9){
+            $this->msg = 502;
+            $this->msg = 'Picture is too many';
+            return $this->response();
+        }
+        $disk = Storage::disk('oss');
+        $date = date('Y-m-d');
+        $uid = $request->get('user_id');
+        $tid = $request->get('to_user_id');
+        DB::beginTransaction();
+        try {
+            $url = '';
+            for ($i = 1; $i <= $number; $i++){
+                $picture = $request->file('picture' . $i);
+                $file_name = 'complaint/'  . $date;
+                $res = $disk->put($file_name, $picture);
+                if ($number == $i){
+                    $url .= $disk->getUrl($res);
+                }else{
+                    $url .= $disk->getUrl($res) . ',';
+                }
+            }
+            $complaints->user_id = $tid;
+            $complaints->c_user_id = $uid;
+            $complaints->ban_id = $request->get('ban_id');
+            $complaints->info = $request->get('info');
+            $complaints->picture = $url;
+            $complaints->status = 0;
+            $complaints->save();
+            DB::commit();
+        }catch (\Exception $exception){
+            DB::rollBack();
+            $this->code = 500;
+            $this->msg = 'Failed';
+            $this->msg = $exception->getMessage();
+            $this->apiLog($exception->getMessage());
+        }
+        return $this->response();
+    }
+
+    /**
+     * Api 日志
+     * @param $info
+     */
+    private function apiLog($info)
+    {
+        Log::channel('api_error')->info($info);
+    }
+
+    public function getBan(){
+        $this->data = Ban_types::where(['status'=>1,'is_home'=>1])->get(['id','info']);
         return $this->response();
     }
 
