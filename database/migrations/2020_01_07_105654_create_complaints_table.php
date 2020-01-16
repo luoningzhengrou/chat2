@@ -19,7 +19,7 @@ class CreateComplaintsTable extends Migration
             $table->integer('c_user_id')->unsigned()->comment('投诉人ID');
             $table->integer('ban_id')->unsigned()->comment('投诉类型');
             $table->string('info')->default('')->comment('投诉理由');
-            $table->string('picture')->comment('图片');
+            $table->longText('picture')->nullable()->comment('图片');
             $table->integer('c_ban_id')->unsigned()->comment('处理类型');
             $table->integer('ban_type_id')->unsigned()->comment('处理原因');
             $table->tinyInteger('status')->unsigned()->default(0)->comment('状态 0 未处理 1 禁言中 2 已忽略 4 已解封');
