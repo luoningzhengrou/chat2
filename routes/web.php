@@ -18,3 +18,5 @@ Route::prefix('websocket')->group(function (){
     Route::get('open', 'Websocket\WebsocketController@open');
 });
 
+Route::get('chat','Web\WebController@index');
+
