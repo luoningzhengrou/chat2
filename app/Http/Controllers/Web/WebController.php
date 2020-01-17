@@ -10,6 +10,6 @@ class WebController extends Controller
 {
     public function index()
     {
-        return response()->file(storage_path().'/web/index.html');
+        return response()->file(public_path().'/index.html');
     }
 }
