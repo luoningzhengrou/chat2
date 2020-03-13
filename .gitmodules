@@ -1,0 +1,3 @@
+[submodule "public/chat"]
+	path = public/chat
+	url = git@github.com:luoningzhengrou/chat_web.git

@@ -52,9 +52,6 @@ class WebsocketController extends Controller
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
-//        if (!self::checkFriend($uid,$tid)){
-//            return $this->response();
-//        }
         $content = $request->get('content');
         if (mb_strlen($content) > 2048){
             $this->code = 502;
@@ -91,6 +88,7 @@ class WebsocketController extends Controller
     /**
      * 检查是否在线
      * @param $uid
+<<<<<<< HEAD
      * @return boolean
      */
     private function checkOnline($uid)
