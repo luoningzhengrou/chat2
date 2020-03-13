@@ -12,7 +12,7 @@ use Workerman\Worker;
 
 class WorkermanCommand extends Command
 {
-    protected $signature = 'workman {action}';
+    protected $signature = 'workman {action} {--d}';
 
     protected $description = 'Start a Workerman server.';
 
@@ -26,6 +26,7 @@ class WorkermanCommand extends Command
 
         $argv[0] = 'wk';
         $argv[1] = $action;
+        $argv[2] = $this->option('d') ? '-d' : '';
 
         $this->start();
     }
