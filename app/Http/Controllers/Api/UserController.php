@@ -159,7 +159,7 @@ class UserController extends Controller
         if (isset($msg) && isset($code)){
             Gateway::$registerAddress = '127.0.0.1:1236';
             if (Gateway::isUidOnline($user_id)){
-                Gateway::sendToUid($user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>[]]));
+                Gateway::sendToUid($user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname')]]));
             }
         }
         $this->updateListCache($user_id);
