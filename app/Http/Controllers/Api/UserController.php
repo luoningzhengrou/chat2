@@ -249,13 +249,14 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        $data = [];
-        if (UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id])->first() && $to_user = UserBuddy::where(['user_id'=>$to_user_id,'to_user_id'=>$user_id])->first()){
+        if ($to_user = UserBuddy::where(['user_id'=>$to_user_id,'to_user_id'=>$user_id])->first()){
             if ($to_user['is_show_phone']){
                 $data = User::where('id',$to_user_id)->first(['id','nickname as username','avatar','area','phone']);
             }else{
                 $data = User::where('id',$to_user_id)->first(['id','nickname as username','avatar','area']);
             }
+        }else{
+            $data = User::where(['id'=>$to_user_id])->first(['id','nickname as username','phone','avatar']);
         }
         $this->data = $data;
         return $this->response();
