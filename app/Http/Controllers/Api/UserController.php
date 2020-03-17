@@ -55,6 +55,11 @@ class UserController extends Controller
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
         $info = $request->get('info');
+        if ($user_id == $to_user_id){
+            $this->code = 400;
+            $this->msg = '不能添加自己';
+            return $this->response();
+        }
         if (!$addFriends = UserAddFriend::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'status'=>0])->first()){
             try {
                 $addFriend->user_id = $user_id;
@@ -133,6 +138,8 @@ class UserController extends Controller
                         $add->status = 1;
                         $add->save();
                     }
+                    $msg = 'agree';
+                    $code = 601;
                     DB::commit();
                 }catch (\Exception $exception){
                     $this->code = 500;
@@ -146,6 +153,14 @@ class UserController extends Controller
             }
         }else{
             UserAddFriend::where($where)->update(['status'=>$status,'is_handle'=>1,'r_info'=>$message,'verified_at'=>$time]);
+            $msg = 'disagree';
+            $code = 602;
+        }
+        if (isset($msg) && isset($code)){
+            Gateway::$registerAddress = '127.0.0.1:1236';
+            if (Gateway::isUidOnline($user_id)){
+                Gateway::sendToUid($user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>[]]));
+            }
         }
         $this->updateListCache($user_id);
         $this->updateListCache($to_user_id);
@@ -432,6 +447,11 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $del_user_id = $request->get('del_user_id');
+        if ($user_id == $del_user_id){
+            $this->code = 400;
+            $this->msg = '不能删除自己';
+            return $this->response();
+        }
         DB::beginTransaction();
         try {
             $buddy = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->first();

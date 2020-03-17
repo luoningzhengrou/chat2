@@ -52,6 +52,11 @@ class WebsocketController extends Controller
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
+        if ($uid == $tid){
+            $this->code = 400;
+            $this->msg = '不能发送消息给自己';
+            return $this->response();
+        }
         $content = $request->get('content');
         if (mb_strlen($content) > 2048){
             $this->code = 502;
@@ -194,6 +199,11 @@ class WebsocketController extends Controller
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
+        if ($uid == $tid){
+            $this->code = 400;
+            $this->msg = '不能发送给自己';
+            return $this->response();
+        }
         $number = $request->get('number');
         if ($number > 9){
             $this->code = 502;
