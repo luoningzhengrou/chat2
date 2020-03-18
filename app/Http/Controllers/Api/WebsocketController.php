@@ -93,7 +93,6 @@ class WebsocketController extends Controller
     /**
      * 检查是否在线
      * @param $uid
-<<<<<<< HEAD
      * @return boolean
      */
     private function checkOnline($uid)
