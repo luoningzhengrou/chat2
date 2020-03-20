@@ -43,7 +43,7 @@ class WorkermanCommand extends Command
     {
         $worker                  = new BusinessWorker();
         $worker->name            = 'BusinessWorker';
-        $worker->count           = 1;
+        $worker->count           = 8;
         $worker->registerAddress = '127.0.0.1:1236';
         $worker->eventHandler    = \App\Workerman\Events::class;
     }
@@ -52,7 +52,7 @@ class WorkermanCommand extends Command
     {
         $gateway = new Gateway("websocket://0.0.0.0:2346");
         $gateway->name                 = 'Gateway';
-        $gateway->count                = 1;
+        $gateway->count                = 4;
         $gateway->lanIp                = '127.0.0.1';
         $gateway->startPort            = 2300;
         $gateway->pingInterval         = 30;

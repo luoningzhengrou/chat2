@@ -67,14 +67,16 @@ class WebsocketController extends Controller
         if (!self::checkOnline($uid)){
             return $this->response();
         }
-        if (!self::checkFriend($uid,$tid)){
-            return $this->response();
-        }
-        if (!self::checkBlackList($uid,$tid)){
-            return $this->response();
-        }
-        if (!self::checkBan($uid)){
-            return $this->response();
+        if (!User::where('id',$tid)->value('is_cs') && !User::where('id',$uid)->value('is_cs')){
+            if (!self::checkFriend($uid,$tid)){
+                return $this->response();
+            }
+            if (!self::checkBlackList($uid,$tid)){
+                return $this->response();
+            }
+            if (!self::checkBan($uid)){
+                return $this->response();
+            }
         }
         $message->fill($request->all());
         $message->user_id = $uid;
@@ -215,14 +217,16 @@ class WebsocketController extends Controller
         if (!self::checkOnline($uid)){
             return $this->response();
         }
-        if (!self::checkFriend($uid,$tid)){
-            return $this->response();
-        }
-        if (!self::checkBlackList($uid,$tid)){
-            return $this->response();
-        }
-        if (!self::checkBan($uid)){
-            return $this->response();
+        if (!User::where('id',$tid)->value('is_cs') && !User::where('id',$uid)->value('is_cs')){
+            if (!self::checkFriend($uid,$tid)){
+                return $this->response();
+            }
+            if (!self::checkBlackList($uid,$tid)){
+                return $this->response();
+            }
+            if (!self::checkBan($uid)){
+                return $this->response();
+            }
         }
         DB::beginTransaction();
         try {

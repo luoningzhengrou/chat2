@@ -141,13 +141,16 @@ class UserController extends Controller
                     $msg = 'agree';
                     $code = 601;
                     DB::commit();
+                    $this->apiLog('添加成功');
                 }catch (\Exception $exception){
                     $this->code = 500;
                     $this->msg = 'Failed';
+                    $this->apiLog('添加失败');
                     $this->apiLog($exception->getMessage());
                     DB::rollBack();
                 }
             }else{
+                $this->apiLog('未找到好友请求信息');
                 $this->code = 404;
                 $this->msg = 'Not Found';
             }
@@ -155,11 +158,15 @@ class UserController extends Controller
             UserAddFriend::where($where)->update(['status'=>$status,'is_handle'=>1,'r_info'=>$message,'verified_at'=>$time]);
             $msg = 'disagree';
             $code = 602;
+            $this->apiLog('拒绝添加好友');
         }
         if (isset($msg) && isset($code)){
             Gateway::$registerAddress = '127.0.0.1:1236';
-            if (Gateway::isUidOnline($user_id)){
-                Gateway::sendToUid($user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname')]]));
+            if (Gateway::isUidOnline($to_user_id)){
+                Gateway::sendToUid($to_user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname')]]));
+                $this->apiLog('消息推送成功');
+            }else{
+                $this->apiLog('推送失败，对方不在线');
             }
         }
         $this->updateListCache($user_id);
@@ -297,7 +304,7 @@ class UserController extends Controller
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
-            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['content','created_at as send_time']);
+            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['content','created_at as send_time','type']);
             Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1]);
             $v['is_top'] = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$v['user_id']])->value('is_top');
         }
