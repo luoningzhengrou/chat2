@@ -321,12 +321,11 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        $time = $request->get('send_time');
-        $time = date('Y-m-d H:i:s',strtotime($time));
+        $id = $request->get('id');
         $content = $request->get('content');
         $model = $request->get('model');
         try {
-            $message = Message::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id,'created_at'=>$time,'content'=>$content])->first();
+            $message = Message::where(['id'=>$id, 'user_id'=>$user_id,'to_user_id'=>$to_user_id,'content'=>$content])->first();
             if ($model == 1){
                 $message->is_show = 0;
             }

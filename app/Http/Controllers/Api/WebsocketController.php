@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class WebsocketController extends Controller
 {
+    protected $error_code = 400;
 
     /**
      * 绑定
@@ -48,7 +49,7 @@ class WebsocketController extends Controller
      * @param Message $message
      * @return \Illuminate\Http\JsonResponse
      */
-    public function chat(Request $request, Message $message)
+    public function chat(Request $request)
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
@@ -78,17 +79,21 @@ class WebsocketController extends Controller
                 return $this->response();
             }
         }
-        $message->fill($request->all());
-        $message->user_id = $uid;
-        $message->to_user_id = $tid;
-        $message->content = $content;
-        $data['from_user_id'] = $uid;
-        $data['from_username'] = User::where('id',$uid)->value('nickname');
+        $data['user_id'] = $uid;
+        $data['to_user_id'] = $tid;
         $data['content'] = $content;
         $data['type'] = 1;
-        $data['send_time'] = date('Y-m-d H:i:s');
-        $message->is_send = $this->push($uid,$tid,$data);
-        $message->save();
+        $id = DB::table('messages')->insertGetId($data);
+        $date_time = date('Y-m-d H:i:s');
+        $data_r['id'] = $id;
+        $data_r['from_user_id'] = $uid;
+        $data_r['from_username'] = User::where('id',$uid)->value('nickname');
+        $data_r['content'] = $content;
+        $data_r['send_time'] = $date_time;
+        if ($this->push($uid,$tid,$data_r)){
+            DB::table('messages')->where(['id'=>$id])->update(['is_send'=>1]);
+        }
+        $this->data = ['id'=>$id,'send_time'=>$date_time];
         return $this->response();
     }
 
@@ -228,6 +233,7 @@ class WebsocketController extends Controller
                 return $this->response();
             }
         }
+        $date_time = date('Y-m-d H:i:s');
         DB::beginTransaction();
         try {
             for ($i = 1; $i <= $number; $i++){
@@ -238,16 +244,39 @@ class WebsocketController extends Controller
                 $data['from_user_id'] = $uid;
                 $data['from_username'] = User::where('id',$uid)->value('nickname');
                 $data['content'] = $url;
-                $data['send_time'] = date('Y-m-d H:i:s');
+                $data['send_time'] = $date_time;
                 $data['type'] = 2;
+                $id = DB::table('messages')->insertGetId(['user_id'=>$uid,'to_user_id'=>$tid,'content'=>$url,'type'=>2]);
+                $data['id'] = $id;
                 $is_send = $this->push($uid,$tid,$data);    //推送
-                Message::create(['user_id'=>$uid,'to_user_id'=>$tid,'content'=>$url,'is_send'=>$is_send,'type'=>2]);
+                if ($is_send){
+                    DB::table('messages')->where(['id'=>$id])->update(['is_send'=>$is_send]);
+                }
+                $this->data[$i]['id'] = $id;
+                $this->data[$i]['url'] = $url;
+                $this->data[$i]['send_time'] = $date_time;
             }
             DB::commit();
         }catch (\Exception $exception){
             DB::rollBack();
             $this->code = 500;
             Log::channel('api_error')->info($exception->getMessage());
+        }
+        return $this->response();
+    }
+
+    public function getOnlineList()
+    {
+        Gateway::$registerAddress = '127.0.0.1:1236';
+        try {
+            if (Gateway::getAllUidCount()){
+                $list = Gateway::getAllUidList();
+                $this->data = $list;
+            }
+        }catch (\Exception $exception){
+            $exception = $exception->getMessage();
+            $this->code = $this->error_code;
+            $this->msg = $exception;
         }
         return $this->response();
     }

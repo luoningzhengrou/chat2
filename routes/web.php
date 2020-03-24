@@ -20,3 +20,10 @@ Route::prefix('websocket')->group(function (){
 
 Route::get('chat','Web\WebController@index');
 
+Route::prefix('admin')->namespace('Web')->group(function (){
+//    Route::get('onlineList', 'WebsocketController@getOnlineList');  //获取所有在线客户端
+    Route::get('onlineList','WebController@getOnlineList');
+
+});
+
+
