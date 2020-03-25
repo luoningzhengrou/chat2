@@ -79,19 +79,21 @@ class WebsocketController extends Controller
                 return $this->response();
             }
         }
+        $date_time = date('Y-m-d H:i:s');
         $data['user_id'] = $uid;
         $data['to_user_id'] = $tid;
         $data['content'] = $content;
         $data['type'] = 1;
+        $data['created_at'] = $date_time;
         $id = DB::table('messages')->insertGetId($data);
-        $date_time = date('Y-m-d H:i:s');
         $data_r['id'] = $id;
         $data_r['from_user_id'] = $uid;
         $data_r['from_username'] = User::where('id',$uid)->value('nickname');
         $data_r['content'] = $content;
+        $data_r['type'] = $data['type'];
         $data_r['send_time'] = $date_time;
         if ($this->push($uid,$tid,$data_r)){
-            DB::table('messages')->where(['id'=>$id])->update(['is_send'=>1]);
+            DB::table('messages')->where(['id'=>$id])->update(['is_send'=>1, 'updated_at'=>date('Y-m-d H:i:s')]);
         }
         $this->data = ['id'=>$id,'send_time'=>$date_time];
         return $this->response();
@@ -246,11 +248,11 @@ class WebsocketController extends Controller
                 $data['content'] = $url;
                 $data['send_time'] = $date_time;
                 $data['type'] = 2;
-                $id = DB::table('messages')->insertGetId(['user_id'=>$uid,'to_user_id'=>$tid,'content'=>$url,'type'=>2]);
+                $id = DB::table('messages')->insertGetId(['user_id'=>$uid,'to_user_id'=>$tid,'content'=>$url,'type'=>2,'created_at'=>$date_time]);
                 $data['id'] = $id;
                 $is_send = $this->push($uid,$tid,$data);    //推送
                 if ($is_send){
-                    DB::table('messages')->where(['id'=>$id])->update(['is_send'=>$is_send]);
+                    DB::table('messages')->where(['id'=>$id])->update(['is_send'=>$is_send, 'updated_at'=>date('Y-m-d H:i:s')]);
                 }
                 $this->data[$i]['id'] = $id;
                 $this->data[$i]['url'] = $url;

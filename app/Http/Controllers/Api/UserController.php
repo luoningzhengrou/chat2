@@ -304,8 +304,8 @@ class UserController extends Controller
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
-            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['content','created_at as send_time','type']);
-            Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1]);
+            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['id','content','created_at as send_time','type']);
+            Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
             $v['is_top'] = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$v['user_id']])->value('is_top');
         }
         $this->data = $list;
