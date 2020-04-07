@@ -29,7 +29,7 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('black', 'UserController@addBlack');                //加入/解除黑名单
     Route::post('blackList', 'UserController@blackList');           //黑名单列表
     Route::post('shield', 'UserController@shield');                 //显示隐藏权限
-    Route::post('cutout', 'UserController@delete');                 //删除好友
+    Route::post('cutout', 'UserController@delete');                 //删除PushController@push好友
     Route::post('up', 'UserController@top');                        //置顶/取消
     Route::post('pStatus', 'UserController@phoneStatus');           //获取手机状态
     Route::post('userId', 'UserController@getUserId');              //获取用户ID
@@ -38,5 +38,10 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('complaint', 'UserController@complaint');           //投诉
     Route::post('banType', 'UserController@getBan');                //投诉类型
     Route::get('onlineList', 'WebsocketController@getOnlineList');  //获取所有在线客户端
+});
+
+Route::prefix('admin')->namespace('Api')->group(function (){
+   Route::any('push', 'PushController@push');                      // 信息推送
+   Route::any('bind', 'PushController@bind');                      // 绑定
 });
 
