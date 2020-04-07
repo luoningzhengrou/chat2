@@ -5,7 +5,6 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-{{--    <link rel="shortcut icon" href="https://cdn.learnku.com//uploads/communities/WtC3cPLHzMbKRSZnagU9.png!/both/44x44"/>--}}
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -22,16 +21,23 @@
 {{--    @include('layouts._header')--}}
 
     <div class="container">
-        <p>当前在线人数 {{ $list['total'] }} 人</p>
-        <table style="border: 1px solid black;">
+        <p>当前在线人数 {{ $data['total'] }} 人</p>
+        <table>
             <th>用户 ID</th>
             <th>用户名</th>
-                @foreach ($list['list'] as $v)
+            <th>IP</th>
+                @foreach ($data['list'] as $v)
                 <tr>
-                    <td>{{ $v['user_id'] }}</td>
-                    <td>{{ $v['username'] }}</td>
+                    <td>{{ $v->id }}</td>
+                    <td>{{ $v->nickname }}</td>
+                    <td>{{ long2ip($v->ip) }}</td>
                 </tr>
                 @endforeach
+            @if(!empty($data['error']))
+            <tr>
+                <td><p style="color: red;">{{ $data['error'] }}</p></td>
+            </tr>
+            @endif
         </table>
 {{--        @include('shared._messages')--}}
 

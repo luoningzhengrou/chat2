@@ -55,7 +55,7 @@ class WorkermanCommand extends Command
         $gateway->count                = 4;
         $gateway->lanIp                = '127.0.0.1';
         $gateway->startPort            = 2300;
-        $gateway->pingInterval         = 30;
+        $gateway->pingInterval         = 55;
         $gateway->pingNotResponseLimit = 1;
         $gateway->pingData             = '';
         $gateway->registerAddress      = '127.0.0.1:1236';

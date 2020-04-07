@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Ban_types;
+use App\Models\ChatIp;
+use App\Models\ChatIpHistory;
 use App\Models\Complaints;
 use App\Models\Message;
 use App\Models\User;
@@ -30,11 +32,23 @@ class WebsocketController extends Controller
             try {
                 Gateway::$registerAddress = '127.0.0.1:1236';
                 Gateway::bindUid($client_id,$uid);
+                $client_id_session = Gateway::getSession($client_id);
+                $ip = $client_id_session['ip'];
+                $ip = ip2long($ip);
+                ChatIpHistory::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                $ip_user = ChatIp::where(['user_id'=>$uid])->first();
+                if ($ip_user){
+                    $ip_user->ip = $ip;
+                    $ip_user->client_id = $client_id;
+                    $ip_user->save();
+                }else{
+                    ChatIp::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                }
                 Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
             }catch (\Exception $exception){
                 $this->code = 500;
                 $this->msg = 'Failed';
-                Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $this->msg . ';');
+                Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $exception->getMessage() . ';');
             }
         }else{
             $this->code = 403;

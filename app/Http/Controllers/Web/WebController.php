@@ -15,26 +15,35 @@ class WebController extends Controller
         return response()->file(public_path().'/index.html');
     }
 
+    public function login()
+    {
+        return view('admin.login');
+    }
+
 
     public function getOnlineList()
     {
         Gateway::$registerAddress = '127.0.0.1:1236';
         try {
-            if ($list['total'] = Gateway::getAllUidCount()){
-                $list['data'] = Gateway::getAllUidList();
-                $i = 0;
-                foreach ($list['data'] as $v){
-                    $list['list'][$i]['user_id'] = $v;
-                    $list['list'][$i]['username'] = DB::table('user')->where('id',$v)->value('nickname');
-                    $i ++;
-                }
-                unset($list['data']);
+            if ($data['total'] = Gateway::getAllUidCount()){
+                $user_list = Gateway::getAllUidList();
+                $data['list'] = DB::table('user')
+                    ->leftJoin('chat_ips','user.id', '=', 'chat_ips.user_id')
+                    ->whereIn('user.id',$user_list)
+                    ->select('user.id','user.nickname','chat_ips.ip')
+                    ->get();
             }
-            $list['error'] = '';
+            $data['error'] = '';
         }catch (\Exception $exception){
-            $list['error'] = $exception->getMessage();
+            $data['error'] = $exception->getMessage();
         }
-        return view('admin.index',compact('list'));
+        if (!isset($data['total'])){
+            $data['total'] = 0;
+        }
+        if (!isset($data['list'])){
+            $data['list'] = [];
+        }
+        return view('admin.index',compact('data'));
     }
 
 }

@@ -162,8 +162,13 @@ class UserController extends Controller
         }
         if (isset($msg) && isset($code)){
             Gateway::$registerAddress = '127.0.0.1:1236';
+            if ($code == 601){
+                $data = ['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname'),'message'=>$message];
+            }else{
+                $data = ['message'=>$message];
+            }
             if (Gateway::isUidOnline($to_user_id)){
-                Gateway::sendToUid($to_user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname')]]));
+                Gateway::sendToUid($to_user_id, json_encode(['code'=>$code,'msg'=>$msg,'data'=>$data]));
                 $this->apiLog('消息推送成功');
             }else{
                 $this->apiLog('推送失败，对方不在线');
@@ -221,13 +226,21 @@ class UserController extends Controller
             foreach ($users as $k => $v){
                 $this->data[$k]['user_id'] = $v['user_id'];
                 $this->data[$k]['is_top'] = $v['is_top'];
-                $user = User::where('id',$v['user_id'])->first(['id','nickname','avatar','area','sex']);
+                $user = User::where('id',$v['user_id'])->first(['id','nickname','avatar','area','sex','phone']);
+                if ($v['is_show_phone']){
+                    $this->data[$k]['phone'] = $user['phone'];
+                }
                 $this->data[$k]['username'] = $user['nickname'];
                 $this->data[$k]['avatar'] = $user['avatar'];
-                $this->data[$k]['area'] = $user['area'];
+                if (is_numeric($user['area'])){
+                    $this->data[$k]['area'] = DB::table('city')->where('id',$user['area'])->value('cityname');
+                }else{
+                    $this->data[$k]['area'] = $user['area'];
+                }
                 $this->data[$k]['sex'] = $user['sex'];
                 $i++;
             }
+            // 客服
             $customer_services = User::where(['status'=>0,'is_cs'=>1])->get(['id','avatar','nickname as username','area','sex']);
             foreach ($customer_services as $key => $val){
                 $data[$key]['user_id'] = $val['id'];
@@ -262,8 +275,13 @@ class UserController extends Controller
             }else{
                 $data = User::where('id',$to_user_id)->first(['id','nickname as username','avatar','area']);
             }
+            if (is_numeric($data['area'])){
+                $data['area'] = DB::table('city')->where('id',$data['area'])->value('cityname');
+            }
         }else{
-            $data = User::where(['id'=>$to_user_id])->first(['id','nickname as username','phone','avatar']);
+            $this->code = 403;
+            $this->msg = '对方不是你的好友';
+            $data = [];
         }
         $this->data = $data;
         return $this->response();
@@ -272,23 +290,24 @@ class UserController extends Controller
 
     /**
      * 获取聊天记录
+     * type 1 开始日期 多少条
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function history(Request $request)
     {
-        $type = $request->get('type');
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        $s_time = date('Y-m-d H:i:s',strtotime($request->get('start_time')));
-        if ($type == 1){
-            $amount = $request->get('amount');
-            $sql = "SELECT user_id,to_user_id,type,content,created_at as send_time FROM hh_messages WHERE ((user_id = $user_id and to_user_id = $to_user_id and is_show = 1) OR (user_id = $to_user_id AND to_user_id = $user_id AND to_is_show = 1)) AND (created_at >= '$s_time') limit $amount";
-        }else{
-            $e_time = date('Y-m-d H:i:s',strtotime($request->get('end_time')));
-            $sql = "SELECT user_id,to_user_id,type,content,created_at as send_time FROM hh_messages WHERE ((user_id = $user_id and to_user_id = $to_user_id and is_show = 1) OR (user_id = $to_user_id AND to_user_id = $user_id AND to_is_show = 1)) AND (created_at BETWEEN '$s_time' AND '$e_time')";
-        }
-        $this->data = DB::select($sql);
+        $limit = $request->get('limit');
+        $current = $request->get('current');
+        $sql = "SELECT id,user_id,to_user_id,type,content,created_at as send_time FROM hh_messages WHERE id > $current AND ((user_id = $user_id and to_user_id = $to_user_id and is_show = 1) OR (user_id = $to_user_id AND to_user_id = $user_id AND to_is_show = 1)) ORDER BY created_at ASC LIMIT $limit";
+        $sql_total = "SELECT count(*) as total FROM hh_messages WHERE id > $current AND ((user_id = $user_id and to_user_id = $to_user_id and is_show = 1) OR (user_id = $to_user_id AND to_user_id = $user_id AND to_is_show = 1))";
+        $data = DB::select($sql);
+        $total = DB::select($sql_total);
+        $this->data['total'] = $total[0]->total;
+        $this->data['limit'] = $limit;
+        $this->data['current_total'] = count($data);
+        $this->data['data'] = $data;
         return $this->response();
     }
 
@@ -306,30 +325,28 @@ class UserController extends Controller
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
             $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['id','content','created_at as send_time','type']);
             Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
-            $v['is_top'] = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$v['user_id']])->value('is_top');
         }
         $this->data = $list;
         return $this->response();
     }
 
     /**
-     *  删除单条消息  model 1 删除自己发出的   model 2 删除他人发出的
+     *  删除单条消息
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function deleteOne(Request $request)
     {
         $user_id = $request->get('user_id');
+        $from_user_id = $request->get('from_user_id');
         $to_user_id = $request->get('to_user_id');
         $id = $request->get('id');
         $content = $request->get('content');
-        $model = $request->get('model');
         try {
-            $message = Message::where(['id'=>$id, 'user_id'=>$user_id,'to_user_id'=>$to_user_id,'content'=>$content])->first();
-            if ($model == 1){
+            $message = Message::where(['id'=>$id, 'user_id'=>$from_user_id,'to_user_id'=>$to_user_id,'content'=>$content])->first();
+            if ($message['user_id'] == $user_id){
                 $message->is_show = 0;
-            }
-            if ($model == 2){
+            }else{
                 $message->to_is_show = 0;
             }
             $message->save();
@@ -406,10 +423,8 @@ class UserController extends Controller
                 $this->data[$k]['avatar'] = $user['avatar'];
                 $this->data[$k]['area'] = $user['area'];
                 $this->data[$k]['sex'] = $user['sex'];
-                if ($is_show_phone = UserBuddy::where(['user_id'=>$v['to_user_id'],'to_user_id'=>$v['user_id']])->value('is_show_phone')){
-                    if ($is_show_phone){
-                        $this->data[$k]['phone'] = $user['phone'];
-                    }
+                if (UserBuddy::where(['user_id'=>$v['to_user_id'],'to_user_id'=>$v['user_id']])->value('is_show_phone')){
+                    $this->data[$k]['phone'] = $user['phone'];
                 }
             }
             Redis::set($key_list,json_encode($this->data));
@@ -465,8 +480,13 @@ class UserController extends Controller
             if ($buddy){
                 UserBuddy::where(['user_id' => $user_id,'to_user_id'=>$del_user_id])->delete();
             }
-            Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->update(['is_show'=>0]);
-            Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->update(['to_is_show'=>0]);
+            if (UserBuddy::where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->first()){
+                Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->update(['is_show'=>0]);
+                Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->update(['to_is_show'=>0]);
+            }else{
+                Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->delete();
+                Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->delete();
+            }
             DB::commit();
         }catch (\Exception $exception){
             DB::rollBack();
