@@ -7,48 +7,47 @@ namespace App\Http\Controllers\Api;
 use App\Models\SaleIp;
 use App\Models\SaleIpHistories;
 use GatewayClient\Gateway;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PushController extends Controller
 {
-
-    protected $prefix = [
-        'A01'   => 'admin_',
-        'B01'   => 'home_',
-        'C01'   => 'app_',
-    ];
+    protected $config;
     protected $log = 'push';
-    protected $write_ip = [
-        '219.155.52.133',   // 公司
-        '47.111.186.8',     // 测试
-        '39.100.243.77',    // PY 测试
-        '112.126.103.83',   // 正式
-    ];
 
     public function __construct()
     {
         parent::__construct();
-        $remote_url = $_SERVER['REMOTE_ADDR'];
-        if (!$this->debug && !in_array($remote_url,$this->write_ip)){
-            echo json_encode([
-                'code' => 403,
-                'msg'  => 'Forbidden',
-                'data' => []
-            ]);
-            exit;
-        }
+        $this->config = config('push.serial_code_config');
     }
 
     /**
      * 绑定
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function bind(Request $request)
     {
         $sale_id = $request->get('sale_id');
-        $uid = 'admin_' . $sale_id;
+        $serial_code = $request->get('serial_code');
+        if (!$sale_id || !$serial_code){
+            $this->code = 401;
+            $this->msg = 'Parameter error!';
+            return $this->response();
+        }
+        if (!$this->checkSerialCode($serial_code)){
+            $this->code = 403;
+            $this->msg = 'Code is not allow!';
+            return $this->response();
+        }
+//        if (!DB::table('sales')->where('id',$sale_id)->first()){
+//            $this->code = 403;
+//            $this->msg = 'Sales id does not exist!';
+//            return $this->response();
+//        }
+        $uid = $this->config[$serial_code]['prefix'] . $sale_id;
         $client_id = $request->get('client_id');
         if (!empty($client_id)){
             try {
@@ -81,12 +80,23 @@ class PushController extends Controller
     /**
      * 推送接口
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function push(Request $request)
     {
         $sale_id = $request->get('sale_id');
-        $uid = 'admin_' . $sale_id;
+        $serial_code = $request->get('serial_code');
+        if (!$this->checkSerialCode($serial_code)){
+            $this->code = 403;
+            $this->msg = 'Code is not allow!';
+            return $this->response();
+        }
+        if (!$this->checkIp($serial_code) && !$this->debug){
+            $this->code = 403;
+            $this->msg = 'IP is not allow!';
+            return $this->response();
+        }
+        $uid = $this->config[$serial_code]['prefix'] . $sale_id;
         $data = $request->get('data');
         if ($data != json_encode(json_decode($data,true),JSON_UNESCAPED_UNICODE)){
             $this->code = 501;
@@ -108,6 +118,32 @@ class PushController extends Controller
             Log::channel($this->log)->info('sale_id: ' . $sale_id . ' Push Fail: ' . $this->msg);
         }
         return $this->response();
+    }
+
+    /**
+     * 检查识别码
+     * @param $code
+     * @return bool
+     */
+    private function checkSerialCode($code)
+    {
+        if (in_array($code,array_keys($this->config))){
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 检查 IP 白名单
+     * @param $code
+     * @return bool
+     */
+    private function checkIp($code)
+    {
+        if (!in_array($_SERVER['REMOTE_ADDR'],$this->config[$code]['ip_list'])){
+            return true;
+        }
+        return false;
     }
 
 }

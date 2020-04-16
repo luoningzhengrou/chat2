@@ -14,4 +14,4 @@ yarn-error.log
 *.pid
 /config/database.php
 *.log
-
+config/push.php

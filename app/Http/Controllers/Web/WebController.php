@@ -43,6 +43,7 @@ class WebController extends Controller
         if (!isset($data['list'])){
             $data['list'] = [];
         }
+        $data['total'] = count($data['list']);
         return view('admin.index',compact('data'));
     }
 
