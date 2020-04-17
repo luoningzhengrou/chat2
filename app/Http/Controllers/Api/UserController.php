@@ -75,7 +75,6 @@ class UserController extends Controller
             $addFriends->info = $info;
             $addFriends->save();
         }
-        Gateway::$registerAddress = '127.0.0.1:1236';
         if (Gateway::isUidOnline($to_user_id)){
             Gateway::sendToUid($to_user_id, json_encode(['code'=>600,'msg'=>'','data'=>[]]));
         }
@@ -161,7 +160,6 @@ class UserController extends Controller
             $this->apiLog('拒绝添加好友');
         }
         if (isset($msg) && isset($code)){
-            Gateway::$registerAddress = '127.0.0.1:1236';
             if ($code == 601){
                 $data = ['user_id'=>$user_id,'username'=>User::where('id',$user_id)->value('nickname'),'message'=>$message];
             }else{

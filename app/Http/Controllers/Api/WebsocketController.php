@@ -30,7 +30,6 @@ class WebsocketController extends Controller
         $client_id = $request->get('client_id');
         if (!empty($client_id)){
             try {
-                Gateway::$registerAddress = '127.0.0.1:1236';
                 Gateway::bindUid($client_id,$uid);
                 $client_id_session = Gateway::getSession($client_id);
                 $ip = $client_id_session['ip'];
@@ -78,7 +77,6 @@ class WebsocketController extends Controller
             $this->msg = 'Message is too long!';
             return $this->response();
         }
-        Gateway::$registerAddress = '127.0.0.1:1236';
         if (!self::checkOnline($uid)){
             return $this->response();
         }
@@ -234,7 +232,6 @@ class WebsocketController extends Controller
         }
         $disk = Storage::disk('oss');
         $date = date('Y-m-d');
-        Gateway::$registerAddress = '127.0.0.1:1236';
         if (!self::checkOnline($uid)){
             return $this->response();
         }
@@ -283,7 +280,6 @@ class WebsocketController extends Controller
 
     public function getOnlineList()
     {
-        Gateway::$registerAddress = '127.0.0.1:1236';
         try {
             if (Gateway::getAllUidCount()){
                 $list = Gateway::getAllUidList();

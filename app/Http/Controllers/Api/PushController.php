@@ -51,7 +51,6 @@ class PushController extends Controller
         $client_id = $request->get('client_id');
         if (!empty($client_id)){
             try {
-                Gateway::$registerAddress = '127.0.0.1:1236';
                 Gateway::bindUid($client_id,$uid);
                 $client_id_session = Gateway::getSession($client_id);
                 $ip = $client_id_session['ip'];
@@ -104,7 +103,6 @@ class PushController extends Controller
             $this->response();
         }
         try {
-            Gateway::$registerAddress = '127.0.0.1:1236';
             Log::channel($this->log)->info('sale_id: ' . $sale_id . ' Push Data: ' . $data . ';');
             if (Gateway::isUidOnline($uid) == 0){
                 Log::channel($this->log)->info('sale_id: ' . $sale_id . ' Push Fail, Not online;');

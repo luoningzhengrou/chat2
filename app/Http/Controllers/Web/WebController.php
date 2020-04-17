@@ -23,7 +23,6 @@ class WebController extends Controller
 
     public function getOnlineList()
     {
-        Gateway::$registerAddress = '127.0.0.1:1236';
         try {
             if ($data['total'] = Gateway::getAllUidCount()){
                 $user_list = Gateway::getAllUidList();
