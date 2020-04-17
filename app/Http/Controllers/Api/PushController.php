@@ -53,15 +53,17 @@ class PushController extends Controller
             try {
                 Gateway::bindUid($client_id,$uid);
                 $client_id_session = Gateway::getSession($client_id);
-                $ip = $client_id_session['ip'];
-                $ip = ip2long($ip);
-                SaleIpHistories::create(['client_id'=>$client_id,'sale_id'=>$sale_id,'ip'=>$ip]);
-                if ($ip_sale = SaleIp::where(['sale_id'=>$sale_id])->first()){
-                    $ip_sale->ip = $ip;
-                    $ip_sale->client_id = $client_id;
-                    $ip_sale->save();
-                }else{
-                    SaleIp::create(['client_id'=>$client_id,'sale_id'=>$sale_id,'ip'=>$ip]);
+                if (isset($client_id_session['ip'])) {
+                    $ip = $client_id_session['ip'];
+                    $ip = ip2long($ip);
+                    SaleIpHistories::create(['client_id'=>$client_id,'sale_id'=>$sale_id,'ip'=>$ip]);
+                    if ($ip_sale = SaleIp::where(['sale_id'=>$sale_id])->first()){
+                        $ip_sale->ip = $ip;
+                        $ip_sale->client_id = $client_id;
+                        $ip_sale->save();
+                    }else{
+                        SaleIp::create(['client_id'=>$client_id,'sale_id'=>$sale_id,'ip'=>$ip]);
+                    }
                 }
                 Log::channel($this->log)->info('sale_id ' . $sale_id . ' bind client_id ' . $client_id . ';');
             }catch (\Exception $exception){
