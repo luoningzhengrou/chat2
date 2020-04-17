@@ -32,16 +32,18 @@ class WebsocketController extends Controller
             try {
                 Gateway::bindUid($client_id,$uid);
                 $client_id_session = Gateway::getSession($client_id);
-                $ip = $client_id_session['ip'];
-                $ip = ip2long($ip);
-                ChatIpHistory::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
-                $ip_user = ChatIp::where(['user_id'=>$uid])->first();
-                if ($ip_user){
-                    $ip_user->ip = $ip;
-                    $ip_user->client_id = $client_id;
-                    $ip_user->save();
-                }else{
-                    ChatIp::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                if (isset($client_id_session['ip'])){
+                    $ip = $client_id_session['ip'];
+                    $ip = ip2long($ip);
+                    ChatIpHistory::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                    $ip_user = ChatIp::where(['user_id'=>$uid])->first();
+                    if ($ip_user){
+                        $ip_user->ip = $ip;
+                        $ip_user->client_id = $client_id;
+                        $ip_user->save();
+                    }else{
+                        ChatIp::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                    }
                 }
                 Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
             }catch (\Exception $exception){
