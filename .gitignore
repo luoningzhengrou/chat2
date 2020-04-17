@@ -15,3 +15,4 @@ yarn-error.log
 /config/database.php
 *.log
 config/push.php
+/app/Console/Commands/WorkermanCommand.php
