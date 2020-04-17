@@ -16,6 +16,7 @@ class Events
     public static function onConnect($client_id)
     {
         $session = ['ip'=>$_SERVER['REMOTE_ADDR']];
+        Log::channel('push')->info(json_encode($_SERVER));
         Gateway::setSession($client_id,$session);
         Gateway::sendToClient($client_id, json_encode(array(
             'type'      => 'init',
