@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller as BaseController;
+use GatewayClient\Gateway;
 
 class Controller extends BaseController
 {
@@ -16,6 +17,7 @@ class Controller extends BaseController
     {
         $this->timeout = env('REDIS_TIMEOUT',864000);
         $this->debug = env('APP_DEBUG',false);
+        Gateway::$registerAddress = '127.0.0.1:' . env('WS_PORT','1236');
     }
 
     // 返回公用方法
