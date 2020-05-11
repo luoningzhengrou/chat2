@@ -114,6 +114,9 @@ class UserController extends Controller
         $to_user_id = $request->get('to_user_id');
         $status = $request->get('status');
         $message = $request->get('message');
+        if (!$message){
+            $message = '';
+        }
         $time = date('Y-m-d H:i:s');
         $where = ['user_id'=>$to_user_id,'to_user_id'=>$user_id,'is_handle'=>0];
         if ($status == 1){
