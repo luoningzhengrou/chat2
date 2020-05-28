@@ -107,6 +107,7 @@ class PushController extends Controller
         try {
             Log::channel($this->log)->info('sale_id: ' . $sale_id . ' Push Data: ' . $data . ';');
             if (Gateway::isUidOnline($uid) == 0){
+                $this->code = 201;
                 Log::channel($this->log)->info('sale_id: ' . $sale_id . ' Push Fail, Not online;');
             }else{
                 Gateway::sendToUid($uid, $data);
