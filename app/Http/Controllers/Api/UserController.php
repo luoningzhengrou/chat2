@@ -233,6 +233,7 @@ class UserController extends Controller
                 }
                 $this->data[$k]['username'] = $user['nickname'];
                 $this->data[$k]['avatar'] = $user['avatar'];
+                $this->data[$k]['is_cs'] = 0;
                 if (is_numeric($user['area'])){
                     $this->data[$k]['area'] = DB::table('city')->where('id',$user['area'])->value('cityname');
                 }else{
@@ -242,7 +243,7 @@ class UserController extends Controller
                 $i++;
             }
             // 客服
-            $customer_services = User::where(['status'=>0,'is_cs'=>1])->get(['id','avatar','nickname as username','area','sex']);
+            $customer_services = User::where(['status'=>0,'is_cs'=>1])->get(['id','avatar','nickname as username','area','sex','phone']);
             foreach ($customer_services as $key => $val){
                 $data[$key]['user_id'] = $val['id'];
                 $data[$key]['is_cs'] = 1;
