@@ -580,6 +580,7 @@ class UserController extends Controller
         if (!$data || $this->debug){
             $db = new Complaints();
             if ($data = $db->where(['user_id'=>$uid,'status'=>1])->orderBy('t_time','desc')->first()){
+                $this->code = 403;
                 $this->data['username'] = DB::table('user')->where(['id'=>$uid])->value('nickname');
                 $this->data['start_date'] = $data['p_time'];
                 $this->data['date'] = $data['t_time'];
@@ -587,7 +588,7 @@ class UserController extends Controller
                 Redis::set($key,json_encode($this->data));
             }
         }else{
-            $this->data = json_decode($data,true);
+            $this->data = $data;
         }
         return $this->response();
     }
