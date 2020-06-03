@@ -89,15 +89,19 @@ class UserController extends Controller
     public function getAddInfo(Request $request)
     {
         $user_id = $request->get('user_id');
-        $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('created_at','desc')->get(['user_id','info','created_at','status']);
+        $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('created_at','asc')->get(['user_id','info','created_at','status'])->groupBy('user_id');
         if ($data){
             foreach ($data as $k => $v){
-                $this->data[$k]['user_id'] = $v['user_id'];
-                $this->data[$k]['username'] = User::where('id',$v['user_id'])->value('nickname');
-                $this->data[$k]['avatar'] = User::where('id',$v['user_id'])->value('avatar');
-                $this->data[$k]['info'] = $v['info'];
-                $this->data[$k]['send_time'] = date('Y-m-d H:i:s',strtotime($v['created_at']));
-                $this->data[$k]['status'] = $v['status'];
+                $info = '';
+                foreach ($v as $key => $value){
+                    $this->data[$k]['user_id'] = $value['user_id'];
+                    $this->data[$k]['username'] = User::where('id',$value['user_id'])->value('nickname');
+                    $this->data[$k]['avatar'] = User::where('id',$value['user_id'])->value('avatar');
+                    $info .= $value['info'] . ';';
+                    $this->data[$k]['info'] = $info;
+                    $this->data[$k]['send_time'] = date('Y-m-d H:i:s',strtotime($value['created_at']));
+                    $this->data[$k]['status'] = $value['status'];
+                }
             }
         }
         return $this->response();
@@ -326,6 +330,13 @@ class UserController extends Controller
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
             $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['id','content','created_at as send_time','type']);
+            $new = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->distinct('id')->get('id');
+            if ($new){
+                UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->update(['is_send'=>1]);
+                $v['new_friend'] = 1;
+            }else{
+                $v['new_friend'] = 0;
+            }
             Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
         }
         $this->data = $list;
