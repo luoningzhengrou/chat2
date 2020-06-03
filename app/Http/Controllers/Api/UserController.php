@@ -360,11 +360,14 @@ class UserController extends Controller
         try {
             $message = Message::where(['id'=>$id, 'user_id'=>$from_user_id,'to_user_id'=>$to_user_id,'content'=>$content])->first();
             if ($message['user_id'] == $user_id){
-                $message->is_show = 0;
+                if ($message->is_show != 0){
+                    $message->is_show = 0;
+                    $message->save();
+                }
             }else{
                 $message->to_is_show = 0;
+                $message->save();
             }
-            $message->save();
         }catch (\Exception $exception){
             $this->code = 500;
             $this->msg = 'Failed';
@@ -394,7 +397,7 @@ class UserController extends Controller
     }
 
     /**
-     * 获取聊天记录
+     * 加入/解除黑名单
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -501,6 +504,8 @@ class UserController extends Controller
             }else{
                 Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->delete();
                 Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->delete();
+                UserAddFriend::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->delete();
+                UserAddFriend::where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->delete();
             }
             DB::commit();
         }catch (\Exception $exception){
@@ -560,6 +565,7 @@ class UserController extends Controller
     /**
      * 获取用户ID BY Token
      * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getUserId(Request $request)
     {
@@ -592,13 +598,16 @@ class UserController extends Controller
         $data = Redis::get($key);
         if (!$data || $this->debug){
             $db = new Complaints();
-            if ($data = $db->where(['user_id'=>$uid,'status'=>1])->orderBy('t_time','desc')->first()){
+            if ($data = $db->where(['user_id'=>$uid,'status'=>1,'t_time'=>['>',date('Y-m-d H:i:s')]])->orderBy('t_time','desc')->first()){
                 $this->code = 403;
                 $this->data['username'] = DB::table('user')->where(['id'=>$uid])->value('nickname');
                 $this->data['start_date'] = $data['p_time'];
                 $this->data['date'] = $data['t_time'];
                 $this->data['info'] = Ban_types::where(['id'=>$data['c_ban_id']])->value('info');
-                Redis::set($key,json_encode($this->data));
+                $expire_time = strtotime($data['t_time']) - time();
+                if ($expire_time > 0){
+                    Redis::setex($key,$expire_time,json_encode($this->data));
+                }
             }
         }else{
             $this->data = $data;
@@ -664,6 +673,10 @@ class UserController extends Controller
         Log::channel('api_error')->info($info);
     }
 
+    /**
+     * 投诉类型
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getBan(){
         $this->data = Ban_types::where(['status'=>1,'is_home'=>1])->get(['id','info']);
         return $this->response();
