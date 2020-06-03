@@ -91,17 +91,19 @@ class UserController extends Controller
         $user_id = $request->get('user_id');
         $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('created_at','asc')->get(['user_id','info','created_at','status'])->groupBy('user_id');
         if ($data){
+            $i = 0;
             foreach ($data as $k => $v){
                 $info = '';
                 foreach ($v as $key => $value){
-                    $this->data[$k]['user_id'] = $value['user_id'];
-                    $this->data[$k]['username'] = User::where('id',$value['user_id'])->value('nickname');
-                    $this->data[$k]['avatar'] = User::where('id',$value['user_id'])->value('avatar');
+                    $this->data[$i]['user_id'] = $value['user_id'];
+                    $this->data[$i]['username'] = User::where('id',$value['user_id'])->value('nickname');
+                    $this->data[$i]['avatar'] = User::where('id',$value['user_id'])->value('avatar');
                     $info .= $value['info'] . ';';
-                    $this->data[$k]['info'] = $info;
-                    $this->data[$k]['send_time'] = date('Y-m-d H:i:s',strtotime($value['created_at']));
-                    $this->data[$k]['status'] = $value['status'];
+                    $this->data[$i]['info'] = $info;
+                    $this->data[$i]['send_time'] = date('Y-m-d H:i:s',strtotime($value['created_at']));
+                    $this->data[$i]['status'] = $value['status'];
                 }
+                $i++;
             }
         }
         return $this->response();
