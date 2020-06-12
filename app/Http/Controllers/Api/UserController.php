@@ -30,7 +30,7 @@ class UserController extends Controller
         $key = env('REDIS_PREFIX') . 'find_' . $phone;
         $user = Redis::get($key);
         if (!$user || $this->debug){
-            $user = User::where(['phone'=>$phone])->first(['id','nickname as username','phone','avatar']);
+            $user = User::where('phone',$phone)->where('is_cs',0)->first(['id','nickname as username','phone','avatar']);
             if ($user){
                 Redis::setex($key,$this->timeout,json_encode($user));
                 $this->data = $user;
@@ -55,6 +55,9 @@ class UserController extends Controller
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
         $info = $request->get('info');
+        if (!$info){
+            $info = '学习的道路上，愿与你同行！';
+        }
         if ($user_id == $to_user_id){
             $this->code = 400;
             $this->msg = '不能添加自己';
@@ -126,7 +129,7 @@ class UserController extends Controller
         $time = date('Y-m-d H:i:s');
         $where = ['user_id'=>$to_user_id,'to_user_id'=>$user_id,'is_handle'=>0];
         if ($status == 1){
-            $info = UserAddFriend::find(1)->where($where)->first();
+            $info = UserAddFriend::where($where)->first();
             if ($info){
                 DB::beginTransaction();
                 try {
@@ -327,19 +330,19 @@ class UserController extends Controller
     public function getAllUnSendMessage(Request $request)
     {
         $user_id = $request->get('user_id');
-        $list = Message::where(['to_user_id'=>$user_id,'is_send'=>0])->distinct('user_id')->get('user_id');
+        $list = Message::where(['to_user_id'=>$user_id,'is_send'=>0])->distinct()->get('user_id');
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
             $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['id','content','created_at as send_time','type']);
-            $new = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->distinct('id')->get('id');
-            if ($new){
-                UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->update(['is_send'=>1]);
-                $v['new_friend'] = 1;
-            }else{
-                $v['new_friend'] = 0;
-            }
             Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
+        }
+        $new = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->distinct()->get('id')->toArray();
+        if (!empty($new)){
+            UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->update(['is_send'=>1]);
+            $this->msg = 1;
+        }else{
+            $this->msg = 0;
         }
         $this->data = $list;
         return $this->response();
@@ -597,8 +600,12 @@ class UserController extends Controller
         $key = env('REDIS_PREFIX') . 'check_ban_' . $uid;
         $data = Redis::get($key);
         if (!$data || $this->debug){
-            $db = new Complaints();
-            if ($data = $db->where(['user_id'=>$uid,'status'=>1,'t_time'=>['>',date('Y-m-d H:i:s')]])->orderBy('t_time','desc')->first()){
+            $data = Complaints::where('user_id',$uid)
+                ->where('status',1)
+                ->where('t_time','>',date('Y-m-d H:i:s'))
+                ->orderBy('t_time','desc')
+                ->first();
+            if (!empty($data)){
                 $this->code = 403;
                 $this->data['username'] = DB::table('user')->where(['id'=>$uid])->value('nickname');
                 $this->data['start_date'] = $data['p_time'];
@@ -608,7 +615,13 @@ class UserController extends Controller
                 if ($expire_time > 0){
                     Redis::setex($key,$expire_time,json_encode($this->data));
                 }
+            }else{
+//                Complaints::where('user_id',$uid)
+//                    ->where('status',1)
+//                    ->where('t_time','<=',date('Y-m-d H:i:s'))
+//                    ->update(['status'=>4]);
             }
+
         }else{
             $this->data = $data;
         }
@@ -654,10 +667,10 @@ class UserController extends Controller
             $complaints->status = 0;
             $complaints->save();
             DB::commit();
+            $this->logHandle('websocket_message',$url);
         }catch (\Exception $exception){
             DB::rollBack();
-            $this->code = 500;
-            $this->msg = 'Failed';
+            $this->errorHandle($exception->getMessage());
             $this->msg = $exception->getMessage();
             $this->apiLog($exception->getMessage());
         }

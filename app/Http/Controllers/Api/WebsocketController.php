@@ -30,26 +30,30 @@ class WebsocketController extends Controller
         $client_id = $request->get('client_id');
         if (!empty($client_id)){
             try {
-                Gateway::bindUid($client_id,$uid);
-                $client_id_session = Gateway::getSession($client_id);
-                if (isset($client_id_session['ip'])){
-                    $ip = $client_id_session['ip'];
-                    $ip = ip2long($ip);
-                    ChatIpHistory::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
-                    $ip_user = ChatIp::where(['user_id'=>$uid])->first();
-                    if ($ip_user){
-                        $ip_user->ip = $ip;
-                        $ip_user->client_id = $client_id;
-                        $ip_user->save();
-                    }else{
-                        ChatIp::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                if (Gateway::isOnline($client_id)){
+                    Gateway::bindUid($client_id,$uid);
+                    $client_id_session = Gateway::getSession($client_id);
+                    if (isset($client_id_session['ip'])){
+                        $ip = $client_id_session['ip'];
+                        $ip = ip2long($ip);
+                        ChatIpHistory::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                        $ip_user = ChatIp::where(['user_id'=>$uid])->first();
+                        if ($ip_user){
+                            $ip_user->ip = $ip;
+                            $ip_user->client_id = $client_id;
+                            $ip_user->save();
+                        }else{
+                            ChatIp::create(['client_id'=>$client_id,'user_id'=>$uid,'ip'=>$ip]);
+                        }
                     }
+                }else{
+                    $this->code = 404;
+                    $this->msg = 'client_id not found!';
                 }
-                Log::channel('websocket')->info('user_id ' . $uid . ' bind client_id ' . $client_id . ';');
+                $this->logHandle('websocket','user_id ' . $uid . ' bind client_id ' . $client_id . ';');
             }catch (\Exception $exception){
-                $this->code = 500;
-                $this->msg = 'Failed';
-                Log::channel('websocket_error')->info('user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $exception->getMessage() . ';');
+                $this->errorHandle($exception->getMessage());
+                $this->logHandle('websocket_error','user_id ' . $uid . ' bind client_id ' . $client_id . 'failed: ' . $exception->getMessage() . ';');
             }
         }else{
             $this->code = 403;
@@ -86,10 +90,14 @@ class WebsocketController extends Controller
             if (!self::checkFriend($uid,$tid)){
                 return $this->response();
             }
-            if (!self::checkBlackList($uid,$tid)){
+            if (!self::checkBan($uid)){
                 return $this->response();
             }
-            if (!self::checkBan($uid)){
+            if (self::checkBlack($tid)){
+                $this->msg = '对方已被封禁';
+                return $this->response();
+            }
+            if (!self::checkBlackList($uid,$tid)){
                 return $this->response();
             }
         }
@@ -123,7 +131,7 @@ class WebsocketController extends Controller
         $msg = true;
         if (Gateway::isUidOnline($uid) == 0){
             $this->code = 400;
-            $this->msg = '你已离线';
+            $this->msg = '网络连接失败';
             $msg = false;
         }
         return $msg;
@@ -177,12 +185,27 @@ class WebsocketController extends Controller
     private function checkBan($uid){
         $msg = true;
         $db = new Complaints();
-        if ($data = $db->where(['user_id'=>$uid,'status'=>1])->orderBy('t_time','desc')->first()){
+        if ($data = $db->where(['user_id'=>$uid,'status'=>1])->where('t_time','>',date('Y-m-d H:i:s'))->orderBy('t_time','desc')->first()){
             $this->code = 403;
             $this->msg = '你已被封禁至' . $data['t_time'];
             $msg = false;
         }
         return $msg;
+    }
+
+    /**
+     *  检查是否被封禁
+     * @param $uid
+     * @return bool
+     */
+    private function checkBlack($uid){
+        $status = false;
+        $db = new Complaints();
+        if ($data = $db->where(['user_id'=>$uid,'status'=>1])->where('t_time','>',date('Y-m-d H:i:s'))->orderBy('t_time','desc')->first()){
+            $this->code = 403;
+            $status = $data['t_time'];
+        }
+        return $status;
     }
 
     /**
@@ -205,7 +228,7 @@ class WebsocketController extends Controller
                 Log::channel('websocket_message')->info('user_id: ' . $uid . ' send to user_id: ' . $tid . ' content: ' . $data['content'] . ';');
             }catch (\Exception $exception){
                 $is_send = 0;
-                $this->msg = 'Failed';
+                $this->msg = $this->error_msg;
                 Log::channel('websocket_error')->info('user_id: ' . $uid . ' send to user_id: ' . $tid . ' content: ' . $data['content'] . ' failed;');
             }
         }
@@ -242,6 +265,10 @@ class WebsocketController extends Controller
                 return $this->response();
             }
             if (!self::checkBlackList($uid,$tid)){
+                return $this->response();
+            }
+            if (self::checkBlack($tid)){
+                $this->msg = '对方已被封禁';
                 return $this->response();
             }
             if (!self::checkBan($uid)){
