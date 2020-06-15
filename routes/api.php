@@ -37,6 +37,7 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('ban', 'UserController@checkBan');                  //查询是否封禁
     Route::post('complaint', 'UserController@complaint');           //投诉
     Route::post('banType', 'UserController@getBan');                //投诉类型
+    Route::post('messageResponse', 'UserController@messageResponse');                //投诉类型
     Route::get('onlineList', 'WebsocketController@getOnlineList');  //获取所有在线客户端
 });
 

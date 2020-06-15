@@ -330,7 +330,7 @@ class UserController extends Controller
     public function getAllUnSendMessage(Request $request)
     {
         $user_id = $request->get('user_id');
-        $list = Message::where(['to_user_id'=>$user_id,'is_send'=>0])->distinct()->get('user_id');
+        $list = Message::where(['to_user_id'=>$user_id,'is_arrived'=>0])->distinct()->get('user_id');
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
@@ -671,7 +671,6 @@ class UserController extends Controller
         }catch (\Exception $exception){
             DB::rollBack();
             $this->errorHandle($exception->getMessage());
-            $this->msg = $exception->getMessage();
             $this->apiLog($exception->getMessage());
         }
         return $this->response();
@@ -692,6 +691,24 @@ class UserController extends Controller
      */
     public function getBan(){
         $this->data = Ban_types::where(['status'=>1,'is_home'=>1])->get(['id','info']);
+        return $this->response();
+    }
+
+    public function messageResponse(Request $request)
+    {
+        $message_id = $request->get('message_id');
+        $now_status = DB::table('messages')->where('id',$message_id)->value('is_arrived');
+        if ($now_status == 0){
+            DB::beginTransaction();
+            try {
+                DB::table('messages')->where('id',$message_id)->update(['is_arrived'=>1]);
+                DB::commit();
+            }catch (\Exception $exception){
+                DB::rollBack();
+                $this->errorHandle($exception->getMessage());
+                $this->apiLog($exception->getMessage());
+            }
+        }
         return $this->response();
     }
 
