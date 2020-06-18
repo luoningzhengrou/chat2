@@ -280,7 +280,7 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
-        if ($to_user = UserBuddy::where(['user_id'=>$to_user_id,'to_user_id'=>$user_id])->first()){
+        if ($to_user = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id])->first()){
             if ($to_user['is_show_phone']){
                 $data = User::where('id',$to_user_id)->first(['id','nickname as username','avatar','area','phone']);
             }else{
@@ -334,12 +334,12 @@ class UserController extends Controller
         foreach ($list as $k => &$v){
             $v['username'] = User::where('id',$v['user_id'])->value('nickname');
             $v['avatar'] = User::where('id',$v['user_id'])->value('avatar');
-            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_send'=>0])->get(['id','content','created_at as send_time','type']);
-            Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_send'=>0])->update(['is_send'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
+            $v['messages'] = Message::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id,'is_arrived'=>0])->get(['id','content','created_at as send_time','type']);
+            Message::where(['to_user_id'=>$user_id,'user_id'=>$v['user_id'],'is_arrived'=>0])->update(['is_arrived'=>1,'updated_at'=>date('Y-m-d H:i:s')]);
         }
-        $new = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->distinct()->get('id')->toArray();
+        $new = UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0])->distinct()->get('id')->toArray();
         if (!empty($new)){
-            UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0,'is_send'=>0])->update(['is_send'=>1]);
+            UserAddFriend::where(['to_user_id'=>$user_id,'is_handle'=>0])->update(['is_send'=>1]);
             $this->msg = 1;
         }else{
             $this->msg = 0;

@@ -31,6 +31,23 @@ class WebsocketController extends Controller
         if (!empty($client_id)){
             try {
                 if (Gateway::isOnline($client_id)){
+                    if (Gateway::isUidOnline($uid)){
+                        $data = [
+                            'code' => 302,
+                            'msg'  => '您已在新设备登陆!',
+                            'data' => [],
+                            'content' => '您已在新设备登陆!'
+                        ];
+                        $this->push($uid,$uid,$data);
+                        $old_client_id = Gateway::getClientIdByUid($uid);
+                        if ($old_client_id){
+                            Gateway::unbindUid($old_client_id[0],$uid);
+                            Gateway::closeClient($old_client_id[0]);
+                        }
+                        $this->logHandle('websocket',$data);
+                        $this->logHandle('websocket', $uid . ': ' . $old_client_id[0] . ' is unBind!');
+                        sleep(1);
+                    }
                     Gateway::bindUid($client_id,$uid);
                     $client_id_session = Gateway::getSession($client_id);
                     if (isset($client_id_session['ip'])){
