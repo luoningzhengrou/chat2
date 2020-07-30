@@ -89,6 +89,14 @@ class WebsocketController extends Controller
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
+        if (!self::checkUser($uid)){
+            $this->msg = '你的用户不存在';
+            return $this->response();
+        }
+        if (!self::checkUser($tid)){
+            $this->msg = '对方用户不存在';
+            return $this->response();
+        }
         if ($uid == $tid){
             $this->code = 400;
             $this->msg = '不能发送消息给自己';
@@ -278,6 +286,16 @@ class WebsocketController extends Controller
             return $this->response();
         }
         if (!User::where('id',$tid)->value('is_cs') && !User::where('id',$uid)->value('is_cs')){
+            if (!self::checkUser($uid)){
+                $this->code = 404;
+                $this->msg = '你的用户不存在';
+                return $this->response();
+            }
+            if (!self::checkUser($tid)){
+                $this->code = 404;
+                $this->msg = '对方用户不存在';
+                return $this->response();
+            }
             if (!self::checkFriend($uid,$tid)){
                 return $this->response();
             }

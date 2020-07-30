@@ -280,6 +280,10 @@ class UserController extends Controller
     {
         $user_id = $request->get('user_id');
         $to_user_id = $request->get('to_user_id');
+        if (!self::checkUser($to_user_id)){
+            $this->msg = '对方用户不存在';
+            return $this->response();
+        }
         if ($to_user = UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id])->first()){
             if ($to_user['is_show_phone']){
                 $data = User::where('id',$to_user_id)->first(['id','nickname as username','avatar','area','phone']);

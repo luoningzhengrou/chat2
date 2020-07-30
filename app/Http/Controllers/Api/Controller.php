@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller as BaseController;
+use App\Models\User;
 use GatewayClient\Gateway;
 use Illuminate\Support\Facades\Log;
 
@@ -57,5 +58,15 @@ class Controller extends BaseController
         }
         Log::channel($channel)->info($info);
     }
+
+    public function checkUser($uid)
+    {
+        if (!User::where('id',$uid)->first()){
+            $this->code = 404;
+            return false;
+        }
+        return true;
+    }
+
 
 }
