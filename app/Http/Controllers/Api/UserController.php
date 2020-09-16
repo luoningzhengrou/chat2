@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\Api\UserGroupCommentRequest;
 use App\Models\Ban_types;
 use App\Models\Complaints;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserAddFriend;
 use App\Models\UserBuddy;
+use App\Models\UserGroup;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -92,20 +94,19 @@ class UserController extends Controller
     public function getAddInfo(Request $request)
     {
         $user_id = $request->get('user_id');
-        $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('created_at','asc')->get(['user_id','info','created_at','status'])->groupBy('user_id');
+        $data = UserAddFriend::where(['to_user_id'=>$user_id])->orderBy('id','desc')->groupBy('user_id')->get(['user_id']);
         if ($data){
             $i = 0;
             foreach ($data as $k => $v){
                 $info = '';
-                foreach ($v as $key => $value){
-                    $this->data[$i]['user_id'] = $value['user_id'];
-                    $this->data[$i]['username'] = User::where('id',$value['user_id'])->value('nickname');
-                    $this->data[$i]['avatar'] = User::where('id',$value['user_id'])->value('avatar');
-                    $info .= $value['info'] . ';';
-                    $this->data[$i]['info'] = $info;
-                    $this->data[$i]['send_time'] = date('Y-m-d H:i:s',strtotime($value['created_at']));
-                    $this->data[$i]['status'] = $value['status'];
-                }
+                $value = UserAddFriend::where(['user_id'=>$v['user_id'],'to_user_id'=>$user_id])->orderBy('created_at','desc')->first();
+                $this->data[$i]['user_id'] = $value['user_id'];
+                $this->data[$i]['username'] = User::where('id',$value['user_id'])->value('nickname');
+                $this->data[$i]['avatar'] = User::where('id',$value['user_id'])->value('avatar');
+                $info .= $value['info'] . ';';
+                $this->data[$i]['info'] = $info;
+                $this->data[$i]['send_time'] = date('Y-m-d H:i:s',strtotime($value['created_at']));
+                $this->data[$i]['status'] = $value['status'];
                 $i++;
             }
         }
@@ -508,6 +509,7 @@ class UserController extends Controller
             if (UserBuddy::where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->first()){
                 Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->update(['is_show'=>0]);
                 Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->update(['to_is_show'=>0]);
+                UserAddFriend::where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->delete();
             }else{
                 Message::where(['user_id'=>$user_id,'to_user_id'=>$del_user_id])->delete();
                 Message::Where(['user_id'=>$del_user_id,'to_user_id'=>$user_id])->delete();
@@ -713,6 +715,19 @@ class UserController extends Controller
                 $this->apiLog($exception->getMessage());
             }
         }
+        return $this->response();
+    }
+
+    public function updateGroup(UserGroupCommentRequest $request)
+    {
+        if (!$userGroup = UserGroup::where(['group_id'=>$request->group_id,'user_id'=>$request->user_id])->first()){
+            $this->infoHandle('信息不存在');
+            return $this->response();
+        }
+
+        $userGroup->name_group = $request->name_group;
+        $userGroup->save();
+
         return $this->response();
     }
 

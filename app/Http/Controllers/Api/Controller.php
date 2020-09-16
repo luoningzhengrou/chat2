@@ -46,6 +46,12 @@ class Controller extends BaseController
         }
     }
 
+    public function infoHandle($info_msg)
+    {
+        $this->code = 400;
+        $this->msg = $info_msg;
+    }
+
     /**
      *  日志处理
      * @param $channel

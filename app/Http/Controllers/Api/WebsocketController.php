@@ -79,6 +79,12 @@ class WebsocketController extends Controller
         return $this->response();
     }
 
+    // 加入群聊(拉人)
+    private function joinGroup($user_id,$group_id)
+    {
+
+    }
+
     /**
      * 聊天
      * @param Request $request

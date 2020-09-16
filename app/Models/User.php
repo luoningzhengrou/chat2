@@ -12,4 +12,19 @@ class User extends Model
     {
         return $this->morphMany(UserAddFriend::class,'selfInfo');
     }
+
+    public function groups()
+    {
+        return $this->hasMany(Group::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(GroupUser::class);
+    }
+
+    public function groupUser()
+    {
+        return $this->hasOne(GroupUser::class);
+    }
 }

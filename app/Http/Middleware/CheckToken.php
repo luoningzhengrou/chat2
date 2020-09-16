@@ -20,7 +20,7 @@ class CheckToken
         $user_id = $request->get('user_id');
         $uri = $request->getUri();
         $array = explode('/',$uri);
-        if (!array_search('admin',$array) && !env('APP_DEBUG')){
+        if (!array_search('admin',$array)){
             if (!$token || !User::where('token',$token)->orWhere('user_token',$token)->first()){
                 echo json_encode([
                     'code' => 403,
