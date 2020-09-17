@@ -6,14 +6,18 @@ use App\Http\Queries\GroupQuery;
 use App\Http\Requests\Api\ChangeGroupOwnerRequest;
 use App\Http\Requests\Api\DestroyGroupRequest;
 use App\Http\Requests\Api\GroupAnnouncementRequest;
+use App\Http\Requests\Api\GroupFindRequest;
 use App\Http\Requests\Api\GroupJoinUserRequest;
 use App\Http\Requests\Api\GroupLectureRequest;
+use App\Http\Requests\Api\GroupMessageRequest;
 use App\Http\Requests\Api\GroupRequest;
+use App\Http\Requests\Api\GroupUpdateCodeRequest;
 use App\Http\Requests\Api\UserJoinGroupRequest;
 use App\Http\Requests\Api\UserLeaveGroupRequest;
 use App\Http\Requests\Api\UserOutGroupRequest;
 use App\Http\Resources\GroupResource;
 use App\Models\Group;
+use App\Models\GroupFile;
 use App\Models\GroupMessage;
 use App\Models\GroupUser;
 use App\Models\User;
@@ -32,7 +36,7 @@ class GroupsController extends Controller
         $user_id = $request->user_id;
         $users_id = $request->users_id;
         $id_array = explode(',',$users_id);
-        $nu = env('CHAT_GROUP_MIN',7);
+        $nu = env('CHAT_GROUP_MIN',6);
         if (count($id_array) < $nu){
             $this->infoHandle("新建群人数不能少于 $nu 人");
             return $this->response();
@@ -78,10 +82,57 @@ class GroupsController extends Controller
             }
             DB::commit();
         }catch (\Exception $e){
-            $message = $e->getMessage();
+            $message = $e->getTraceAsString();
             $this->errorHandle($message);
+            $this->logHandle($message);
             DB::rollBack();
         }
+        return $this->response();
+    }
+
+    public function find(GroupFindRequest $request)
+    {
+        if (!$group = Group::where('union_id',$request->group_union_id)->first()){
+            $this->infoHandle('群不存在');
+            return $this->response();
+        }
+
+        $this->data = [
+            'id' => $group->id,
+            'name' => $group->name,
+            'union_id' => $group->union_id,
+            'announcement' => $group->announcement
+        ];
+        return $this->response();
+    }
+
+    public function message(GroupMessageRequest $request, GroupMessage $groupMessage)
+    {
+        if (!User::where('id',$request->user_id)->first()){
+            $this->infoHandle('非法访问');
+            return $this->response();
+        }
+        if (!Gateway::isUidOnline($request->user_id)){
+            $this->infoHandle('你已离线');
+            return $this->response();
+        }
+        $group_union_id = Group::where('id',$request->group_id)->value('union_id');
+
+        $groupMessage->user_id = $request->user_id;
+        $groupMessage->group_id = $request->group_id;
+        $groupMessage->content = $request->message;
+        $groupMessage->type = $request->type;
+        $groupMessage->save();
+
+        $message = [
+            'code' => 4,
+            'message' => $request->message,
+            'group_id' => $request->group_id,
+            'from_user_id' => $request->user_id,
+            'type' => $request->type
+        ];
+        Gateway::sendToGroup($group_union_id,json_encode($message));
+
         return $this->response();
     }
 
@@ -89,7 +140,7 @@ class GroupsController extends Controller
     {
         if (Gateway::isUidOnline($user_id) && $group = Group::where('id',$group_id)->first()){
             $client_id = Gateway::getClientIdByUid($user_id);
-            Gateway::joinGroup($client_id, $group->union_id);
+            Gateway::joinGroup($client_id[0], $group->union_id);
             Gateway::sendToUid($user_id,json_encode(['code'=>1, 'msg'=> '新群聊', 'data'=> ['id'=>$group_id,'group_union_id'=>$group->union_id,'group_name'=>$group->name]]));
         }
     }
@@ -166,10 +217,10 @@ class GroupsController extends Controller
             $user_group = UserGroup::where(['user_id'=>$user_id,'group_id'=>$groupId])->first();
             $group['is_top'] = $user_group['is_top'] ?: 0;
             $group['name_group'] = $user_group['name_group'];
-            $sql = DB::raw("select u.id,u.nickname as name,u.avatar,u.phone,u.area from hh_chat_group_users as g left join hh_user as u on g.user_id = u.id where g.group_id = $groupId");
+            $sql = DB::raw("select u.id,u.nickname as name,u.avatar,u.phone,u.area,g.is_owner from hh_chat_group_users as g left join hh_user as u on g.user_id = u.id where g.group_id = $groupId order by g.id asc");
             $users = DB::select($sql);
             $group['user'] = $users;
-            $sql = DB::raw("select f.id,f.name,f.file_url,f.user_id,f.created_at,u.nickname as name from hh_chat_group_files as f left join hh_user as u on f.user_id = u.id where f.group_id = $groupId");
+            $sql = DB::raw("select f.id,f.name,f.file_url,f.user_id,f.created_at,u.nickname as username from hh_chat_group_files as f left join hh_user as u on f.user_id = u.id where f.group_id = $groupId order by f.id asc");
             $files = DB::select($sql);
             $group['file'] = $files;
             $this->data = $group;
@@ -220,8 +271,29 @@ class GroupsController extends Controller
         return $this->response();
     }
 
+    public function updateCode(GroupUpdateCodeRequest $request)
+    {
+        if (!$group = Group::where('id',$request->group_id)->first()){
+            $this->infoHandle('群不存在');
+            return $this->response();
+        }
+        if (!$this->checkOwner($request->user_id,$request->group_id)){
+            $this->infoHandle('非群主不能修改');
+            return $this->response();
+        }
+
+        $group->code = $request->code;
+        $group->save();
+
+        return $this->response();
+    }
+
     public function joinToGroup(GroupJoinUserRequest $request)
     {
+        if (!GroupUser::where(['group_id'=>$request->group_id,'user_id'=>$request->user_id])->first()){
+            $this->infoHandle('怒不在群里，无法拉人');
+            return $this->response();
+        }
         $users_id_arr = explode(',',$request->users_id);
         $this->param['from_user_id'] = $request->user_id;
         $this->param['group_id'] = $request->group_id;
@@ -243,7 +315,8 @@ class GroupsController extends Controller
 
     public function userJoinGroup(UserJoinGroupRequest $request)
     {
-        if (!$group_id = Group::where(['union_id'=>$request->group_union_id,'code'=>$request->code])->value('id')){
+        $group_id = Group::where(['union_id'=>$request->group_union_id,'code'=>$request->code])->value('id');
+        if (!$group_id){
             $this->infoHandle('进群码错误');
             return $this->response();
         }
@@ -256,7 +329,7 @@ class GroupsController extends Controller
         try {
             $this->userGroupSave();
             $this->groupUserSave();
-            $this->joinGroup($request->user_id,$request->group_id);
+            $this->joinGroup($request->user_id,$request->group_union_id);
         }catch (\Exception $exception){
             $message = $exception->getMessage();
             $this->errorHandle($message);
@@ -282,7 +355,7 @@ class GroupsController extends Controller
 
     public function leaveGroup(UserLeaveGroupRequest $request)
     {
-        if (!$this->checkOwner((int) $request->user_id,$request->group_id)){
+        if ($this->checkOwner((int) $request->out_user_id,$request->group_id)){
             $this->infoHandle('群主不能退出');
             return $this->response();
         }
@@ -314,7 +387,7 @@ class GroupsController extends Controller
 
         if (Gateway::isUidOnline($request->out_user_id) && $group = Group::where('id',$request->group_id)->first()){
             $client_id = Gateway::getClientIdByUid($request->out_user_id);
-            Gateway::leaveGroup($client_id, $group->union_id);
+            Gateway::leaveGroup($client_id[0], $group->union_id);
             Gateway::sendToUid($request->out_user_id,json_encode(['code'=>2, 'msg'=> $msg, 'data'=> ['id'=>$request->group_id,'group_union_id'=>$group->union_id,'group_name'=>$group->name]]));
         }
 
@@ -336,6 +409,7 @@ class GroupsController extends Controller
             GroupUser::where('group_id',$request->group_id)->delete();
             UserGroup::where('group_id',$request->group_id)->delete();
             GroupMessage::where('group_id',$request->group_id)->delete();
+            GroupFile::where('group_id',$request->group_id)->delete();
             Group::where('id',$request->group_id)->delete();
             DB::commit();
         }catch (\Exception $exception){

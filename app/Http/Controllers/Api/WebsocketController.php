@@ -6,9 +6,11 @@ use App\Models\Ban_types;
 use App\Models\ChatIp;
 use App\Models\ChatIpHistory;
 use App\Models\Complaints;
+use App\Models\Group;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBuddy;
+use App\Models\UserGroup;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +52,9 @@ class WebsocketController extends Controller
                     }
                     Gateway::bindUid($client_id,$uid);
                     $client_id_session = Gateway::getSession($client_id);
+                    // 加入群聊
+                    $this->joinGroup($uid,$client_id);
+
                     if (isset($client_id_session['ip'])){
                         $ip = $client_id_session['ip'];
                         $ip = ip2long($ip);
@@ -80,9 +85,13 @@ class WebsocketController extends Controller
     }
 
     // 加入群聊(拉人)
-    private function joinGroup($user_id,$group_id)
+    private function joinGroup($user_id,$client_id)
     {
-
+        $groups = UserGroup::where('user_id',$user_id)->get();
+        foreach ($groups as $v){
+            $union_id = Group::where('id',$v->group_id)->value('union_id');
+            Gateway::joinGroup($client_id,$union_id);
+        }
     }
 
     /**

@@ -39,19 +39,22 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('banType', 'UserController@getBan');                //投诉类型
     Route::post('messageResponse', 'UserController@messageResponse');                //投诉类型
     // 群聊
-    Route::get('onlineList', 'WebsocketController@getOnlineList');  //获取所有在线客户端
-    Route::post('groups', 'GroupsController@store')->name('groups.store'); // 创建群聊
-    Route::patch('groups', 'GroupsController@update')->name('groups.update'); // 修改群信息(公告进群码学习时间)
+    Route::get('onlineList', 'WebsocketController@getOnlineList');                          //获取所有在线客户端
+    Route::post('groups', 'GroupsController@store')->name('groups.store');                  // 创建群聊
+    Route::post('group/message', 'GroupsController@message')->name('group.message');        // 发送群消息
+    Route::patch('groups', 'GroupsController@update')->name('groups.update');               // 修改群信息(公告进群码学习时间)
     Route::post('groups/owner', 'GroupsController@changeGroupOwner')->name('groups.owner'); // 转让群主
-    Route::get('groups/{groupId}/show' ,'GroupsController@show')->name('groups.show'); // 查看群信息
-    Route::patch('user', 'UserController@updateGroup')->name('user.group.name'); // 修改群昵称
-    Route::patch('announcement', 'GroupsController@updateAnnouncement');  // 修改群公告
-    Route::patch('lecture', 'GroupsController@updateLecture')->name('groups.lecture'); // 修改群学习时间
-    Route::post('group', 'GroupsController@joinToGroup')->name('group.join'); // 拉人进群
-    Route::post('group/join', 'GroupsController@userJoinGroup')->name('group.user.join'); // 用户主动进群
-    Route::post('group/out', 'GroupsController@outGroup')->name('group.out'); // 踢出群聊
-    Route::post('group/leave', 'GroupsController@leaveGroup')->name('group.leave'); // 退出群聊
-    Route::post('group/destroy', 'GroupsController@destroy')->name('group.destroy'); // 解散群
+    Route::get('groups/{groupId}/show' ,'GroupsController@show')->name('groups.show');      // 查看群信息
+    Route::patch('user', 'UserController@updateGroup')->name('user.group.name');            // 修改群昵称
+    Route::patch('announcement', 'GroupsController@updateAnnouncement');                    // 修改群公告
+    Route::patch('lecture', 'GroupsController@updateLecture')->name('groups.lecture');      // 修改群学习时间
+    Route::patch('group/code', 'GroupsController@updateCode')->name('group.code');          // 修改进群码
+    Route::post('group', 'GroupsController@joinToGroup')->name('group.join');               // 拉人进群
+    Route::get('group/{groupId}', 'GroupsController@find')->name('group.find');             // 搜索群聊
+    Route::post('group/code', 'GroupsController@userJoinGroup')->name('group.user.join');   // 用户主动进群
+    Route::post('group/out', 'GroupsController@outGroup')->name('group.out');               // 踢出群聊
+    Route::post('group/leave', 'GroupsController@leaveGroup')->name('group.leave');         // 退出群聊
+    Route::post('group/destroy', 'GroupsController@destroy')->name('group.destroy');        // 解散群
 });
 
 // 推送接口
