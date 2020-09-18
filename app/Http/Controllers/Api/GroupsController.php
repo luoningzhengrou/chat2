@@ -24,6 +24,7 @@ use App\Models\User;
 use App\Models\UserGroup;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class GroupsController extends Controller
@@ -52,6 +53,11 @@ class GroupsController extends Controller
             // 群
             $group->union_id = $group_union_id;
             $group->name = $request->name;
+            $group->avatar = $request->avatar;
+            $group->cert_id = $request->cert_id;
+            $group->code = $request->code;
+            $group->province_id = $request->province_id;
+            $group->city_id = $request->city_id;
             $group->save();
 
             // 群主
@@ -80,6 +86,7 @@ class GroupsController extends Controller
                 $this->userGroupSave();
                 $this->joinGroup($v,$group->id);
             }
+            $this->data['group_id'] = $group->id;
             DB::commit();
         }catch (\Exception $e){
             $message = $e->getTraceAsString();
@@ -97,12 +104,23 @@ class GroupsController extends Controller
             return $this->response();
         }
 
-        $this->data = [
-            'id' => $group->id,
-            'name' => $group->name,
-            'union_id' => $group->union_id,
-            'announcement' => $group->announcement
-        ];
+        $cache_key = 'group_' . $request->group_union_id;
+        $data = Cache::get($cache_key);
+        if (!$data){
+            $data = [
+                'id' => $group->id,
+                'name' => $group->name,
+                'union_id' => $group->union_id,
+                'announcement' => $group->announcement,
+                'avatar' => $group->avatar,
+                'cert_name' => DB::table('category')->where('id',$group->cert_id)->value('name'),
+                'province' => DB::table('city')->where('id',$group->province_id)->value('cityname'),
+                'city' => DB::table('city')->where('id',$group->city_id)->value('cityname'),
+            ];
+            Cache::put($cache_key,$data,86400);
+        }
+        $data['num'] = GroupUser::where('group_id',$group->id)->count();
+        $this->data = $data;
         return $this->response();
     }
 
@@ -208,21 +226,23 @@ class GroupsController extends Controller
     {
         $user_id = $request->user_id;
 
-        $group = Group::findOrFail($groupId);
+        $field = 'g.id,g.union_id,g.name,g.avatar,g.cert_id,g.province_id,g.city_id,g.code,g.announcement,g.start_time,g.end_time,g.created_at,c.name as cert_name,p.cityname as province_name,t.cityname as city_name';
+        $sql = DB::raw("select $field from hh_chat_groups as g left join hh_category as c on g.cert_id = c.id left join hh_city as p on g.province_id = p.id left join hh_city as t on g.city_id = t.id where g.id = $groupId limit 1");
+        $group = DB::selectOne($sql);
 
         if ($group){
 
-            $group['start_time'] = $group['start_time'] ?: '';
-            $group['end_time'] = $group['end_time'] ?: '';
+            $group->start_time = $group->start_time ?: '';
+            $group->end_time = $group->end_time ?: '';
             $user_group = UserGroup::where(['user_id'=>$user_id,'group_id'=>$groupId])->first();
-            $group['is_top'] = $user_group['is_top'] ?: 0;
-            $group['name_group'] = $user_group['name_group'];
+            $group->is_top = $user_group->is_top ?: 0;
+            $group->name_group = $user_group->name_group;
             $sql = DB::raw("select u.id,u.nickname as name,u.avatar,u.phone,u.area,g.is_owner from hh_chat_group_users as g left join hh_user as u on g.user_id = u.id where g.group_id = $groupId order by g.id asc");
             $users = DB::select($sql);
-            $group['user'] = $users;
+            $group->user = $users;
             $sql = DB::raw("select f.id,f.name,f.file_url,f.user_id,f.created_at,u.nickname as username from hh_chat_group_files as f left join hh_user as u on f.user_id = u.id where f.group_id = $groupId order by f.id asc");
             $files = DB::select($sql);
-            $group['file'] = $files;
+            $group->file = $files;
             $this->data = $group;
         }
 
@@ -412,9 +432,15 @@ class GroupsController extends Controller
             GroupFile::where('group_id',$request->group_id)->delete();
             Group::where('id',$request->group_id)->delete();
             DB::commit();
+            $res = 1;
         }catch (\Exception $exception){
             DB::rollBack();
             $this->errorHandle($exception->getMessage());
+            $res = 0;
+        }
+
+        if ($res === 1){
+            return response(null, 204);
         }
 
         return $this->response();

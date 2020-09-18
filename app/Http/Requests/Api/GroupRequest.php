@@ -31,7 +31,12 @@ class GroupRequest extends FormRequest
                 'min:13',
 //                'regex:/^(,){6,}$/'
             ],
-            'name' => 'required|string'
+            'name' => 'required|string',
+            'avatar' => 'required|string',
+            'cert_id' => 'required',
+            'province_id' => 'required',
+            'city_id' => 'required',
+            'code' => 'required',
         ];
     }
 }

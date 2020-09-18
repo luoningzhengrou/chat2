@@ -54,7 +54,7 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('group/code', 'GroupsController@userJoinGroup')->name('group.user.join');   // 用户主动进群
     Route::post('group/out', 'GroupsController@outGroup')->name('group.out');               // 踢出群聊
     Route::post('group/leave', 'GroupsController@leaveGroup')->name('group.leave');         // 退出群聊
-    Route::post('group/destroy', 'GroupsController@destroy')->name('group.destroy');        // 解散群
+    Route::delete('group/destroy', 'GroupsController@destroy')->name('group.destroy');      // 解散群
 });
 
 // 推送接口
