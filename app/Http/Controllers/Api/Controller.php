@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller as BaseController;
 use App\Models\User;
 use GatewayClient\Gateway;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class Controller extends BaseController
@@ -15,12 +16,15 @@ class Controller extends BaseController
     public $data = [];
     protected $timeout;
     protected $debug;
+    protected $user_id;
 
-    public function __construct()
+    public function __construct(Request $request)
     {
         $this->timeout = env('REDIS_TIMEOUT',864000);
         $this->debug = env('APP_DEBUG',false);
         Gateway::$registerAddress = '127.0.0.1:' . env('WS_PORT','1236');
+        $token = $request->token;
+        $this->user_id = User::where('token',$token)->value('id');
     }
 
     // 返回公用方法

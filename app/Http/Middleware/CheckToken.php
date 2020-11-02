@@ -16,29 +16,29 @@ class CheckToken
      */
     public function handle($request, Closure $next)
     {
-        $token = $request->get('token');
         $user_id = $request->get('user_id');
         $uri = $request->getUri();
         $array = explode('/',$uri);
-        if (!array_search('admin',$array)){
-            if (!$token || !User::where('token',$token)->orWhere('user_token',$token)->first()){
+        if (array_search('admin',$array)){
+            return $next($request);
+        }
+        $token = $request->get('token');
+        $user = User::where('token',$token)->orWhere('user_token',$token)->first();
+        if (!$token || !$user){
                 echo json_encode([
                     'code' => 403,
                     'msg'  => '未登录',
                     'data' => []
                 ]);
                 exit;
-            }
-            if ($user_id){
-                if ($user_id != User::where('token',$token)->orWhere('user_token',$token)->value('id')){
-                    echo json_encode([
-                        'code' => 404,
-                        'msg'  => '无权访问',
-                        'data' => []
-                    ]);
-                    exit;
-                }
-            }
+        }
+        if ($user_id && $user->id != $user_id){
+            echo json_encode([
+                'code' => 403,
+                'msg'  => '用户信息错误',
+                'data' => []
+            ]);
+            exit;
         }
         return $next($request);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\Api\UserComplaintRequest;
 use App\Http\Requests\Api\UserGroupCommentRequest;
 use App\Models\Ban_types;
 use App\Models\Complaints;
@@ -676,6 +677,29 @@ class UserController extends Controller
             $this->logHandle('websocket_message',$url);
         }catch (\Exception $exception){
             DB::rollBack();
+            $this->errorHandle($exception->getMessage());
+            $this->apiLog($exception->getMessage());
+        }
+        return $this->response();
+    }
+
+    public function userComplaint(UserComplaintRequest $request, Complaints $complaint)
+    {
+        $user_id = $request->get('user_id');
+        $to_user_id = $request->get('to_user_id');
+        if (!UserBuddy::where(['user_id'=>$user_id,'to_user_id'=>$to_user_id])->first()){
+            $this->infoHandle('非好友不能投诉');
+            return $this->response();
+        }
+        try {
+            $complaint->user_id = $user_id;
+            $complaint->c_user_id = $to_user_id;
+            $complaint->ban_id = $request->get('ban_id');
+            $complaint->info = $request->get('info');
+            $complaint->picture = $request->get('picture');
+            $complaint->status = 0;
+            $complaint->save();
+        }catch (\Exception $exception){
             $this->errorHandle($exception->getMessage());
             $this->apiLog($exception->getMessage());
         }

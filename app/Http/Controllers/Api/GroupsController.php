@@ -4,19 +4,25 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Queries\GroupQuery;
 use App\Http\Requests\Api\ChangeGroupOwnerRequest;
+use App\Http\Requests\Api\ComplaintRequest;
 use App\Http\Requests\Api\DestroyGroupRequest;
 use App\Http\Requests\Api\GroupAnnouncementRequest;
 use App\Http\Requests\Api\GroupFindRequest;
 use App\Http\Requests\Api\GroupJoinUserRequest;
 use App\Http\Requests\Api\GroupLectureRequest;
 use App\Http\Requests\Api\GroupMessageRequest;
+use App\Http\Requests\Api\GroupNameUpdateRequest;
 use App\Http\Requests\Api\GroupRequest;
 use App\Http\Requests\Api\GroupUpdateCodeRequest;
+use App\Http\Requests\Api\MyGroupRequest;
+use App\Http\Requests\Api\SearchRequest;
 use App\Http\Requests\Api\UserJoinGroupRequest;
 use App\Http\Requests\Api\UserLeaveGroupRequest;
 use App\Http\Requests\Api\UserOutGroupRequest;
 use App\Http\Resources\GroupResource;
 use App\Models\Group;
+use App\Models\GroupComplaint;
+use App\Models\GroupComplaintReason;
 use App\Models\GroupFile;
 use App\Models\GroupMessage;
 use App\Models\GroupUser;
@@ -31,6 +37,20 @@ class GroupsController extends Controller
 {
     protected $param;
 
+    public function __construct(Request $request)
+    {
+        parent::__construct($request);
+        if ($group_id = $request->group_id){
+            if (!GroupUser::where(['group_id'=>$group_id,'user_id'=>$this->user_id])->first()){
+                return response(null,404);
+            }
+            $complaint = GroupComplaint::where(['group_id'=>$group_id,'type'=>1,'end_time'=>['>',date('Y-m-d H:i:s')]])->orderBy('end_time','desc')->first();
+            if ($complaint){
+                return response('群已被封禁至:' . $complaint->end_time,403);
+            }
+        }
+    }
+
     // 建群
     public function store(GroupRequest $request, Group $group, GroupUser $groupUser)
     {
@@ -42,6 +62,7 @@ class GroupsController extends Controller
             $this->infoHandle("新建群人数不能少于 $nu 人");
             return $this->response();
         }
+
         // 群号
         ID:
         $group_union_id = group_union();
@@ -134,6 +155,13 @@ class GroupsController extends Controller
             $this->infoHandle('你已离线');
             return $this->response();
         }
+
+        // 检查群是否被封禁
+        if ($complaint = GroupComplaint::where(['group_id'=>$request->group_id,'status'=>1,'end_time'=>['<=',date('Y-m-d H:i:s')]])->first()){
+            $this->infoHandle('群已被封禁至:' . $complaint->end_time);
+            return $this->response();
+        }
+
         $group_union_id = Group::where('id',$request->group_id)->value('union_id');
 
         $groupMessage->user_id = $request->user_id;
@@ -225,13 +253,11 @@ class GroupsController extends Controller
     public function show(Request $request, $groupId)
     {
         $user_id = $request->user_id;
-
         $field = 'g.id,g.union_id,g.name,g.avatar,g.cert_id,g.province_id,g.city_id,g.code,g.announcement,g.start_time,g.end_time,g.created_at,c.name as cert_name,p.cityname as province_name,t.cityname as city_name';
         $sql = DB::raw("select $field from hh_chat_groups as g left join hh_category as c on g.cert_id = c.id left join hh_city as p on g.province_id = p.id left join hh_city as t on g.city_id = t.id where g.id = $groupId limit 1");
         $group = DB::selectOne($sql);
 
         if ($group){
-
             $group->start_time = $group->start_time ?: '';
             $group->end_time = $group->end_time ?: '';
             $user_group = UserGroup::where(['user_id'=>$user_id,'group_id'=>$groupId])->first();
@@ -240,9 +266,14 @@ class GroupsController extends Controller
             $sql = DB::raw("select u.id,u.nickname as name,u.avatar,u.phone,u.area,g.is_owner from hh_chat_group_users as g left join hh_user as u on g.user_id = u.id where g.group_id = $groupId order by g.id asc");
             $users = DB::select($sql);
             $group->user = $users;
+            $group->user_num = count($users);
             $sql = DB::raw("select f.id,f.name,f.file_url,f.user_id,f.created_at,u.nickname as username from hh_chat_group_files as f left join hh_user as u on f.user_id = u.id where f.group_id = $groupId order by f.id asc");
             $files = DB::select($sql);
             $group->file = $files;
+            $group->file_num = count($files);
+            $group->is_owner = GroupUser::where(['group_id'=>$groupId,'user_id'=>$user_id])->value('is_owner');
+            $user_id = GroupUser::where(['group_id'=>$groupId,'is_owner'=>1])->value('user_id');
+            $group->owner_name = User::where('id',$user_id)->value('nickname');
             $this->data = $group;
         }
 
@@ -283,6 +314,11 @@ class GroupsController extends Controller
             return $this->response();
         }
 
+        if ($request->end_time < $request->start_time){
+            $this->infoHandle('时间设置无效');
+            return $this->response();
+        }
+
         $group = Group::where('id',$request->group_id)->first();
         $group->start_time = $request->start_time;
         $group->end_time = $request->end_time;
@@ -308,10 +344,22 @@ class GroupsController extends Controller
         return $this->response();
     }
 
+    public function updateName(GroupNameUpdateRequest $request,$groupId)
+    {
+        if ($this->checkOwner((int) $this->user_id,$groupId) === false){
+             $this->infoHandle('非群主无权限');
+            return $this->response();
+        }
+        $group = Group::find($groupId);
+        $group->name = $request->name;
+        $group->save();
+        return $this->response();
+    }
+
     public function joinToGroup(GroupJoinUserRequest $request)
     {
         if (!GroupUser::where(['group_id'=>$request->group_id,'user_id'=>$request->user_id])->first()){
-            $this->infoHandle('怒不在群里，无法拉人');
+            $this->infoHandle('你不在群里，无法拉人');
             return $this->response();
         }
         $users_id_arr = explode(',',$request->users_id);
@@ -358,6 +406,16 @@ class GroupsController extends Controller
         return $this->response();
     }
 
+    public function myGroups(MyGroupRequest $request)
+    {
+        $user_id = $request->get('user_id');
+        $this->data = DB::table('chat_group_user_groups')
+            ->leftJoin('chat_groups','chat_group_user_groups.group_id','=','chat_groups.id')
+            ->where('chat_group_user_groups.user_id',$user_id)
+            ->get(['chat_groups.id','chat_groups.name','chat_groups.avatar']);
+        return $this->response();
+    }
+
     public function outGroup(UserOutGroupRequest $request)
     {
         if (!$this->checkOwner($request->user_id,$request->group_id)){
@@ -365,7 +423,20 @@ class GroupsController extends Controller
             return $this->response();
         }
 
-        $res = $this->leave($request,'你已被管理员踢出群聊');
+        $out_user_id = $request->out_user_id;
+        $users = explode(',',$out_user_id);
+
+        if (in_array(DB::table('chat_group_users')->where(['group_id'=>$request->group_id,'is_owner'=>1])->value('user_id'),$users)){
+            $this->infoHandle('群主不能退出');
+            return $this->response();
+        }
+
+        $res = false;
+        foreach ($users as $user_id){
+            $request->out_user_id = $user_id;
+            $res = $this->leave($request,'你已被管理员踢出群聊');
+        }
+
         if ($res !== true){
             $this->errorHandle($res);
         }
@@ -443,6 +514,51 @@ class GroupsController extends Controller
             return response(null, 204);
         }
 
+        return $this->response();
+    }
+
+    public function complaint(ComplaintRequest $request, GroupComplaint $groupComplaint)
+    {
+        $groupComplaint->group_id = $request->group_id;
+        $groupComplaint->user_id = $request->user_id;
+        $groupComplaint->content = $request->proof;
+        $groupComplaint->reason = $request->reason;
+        $groupComplaint->complaint_time = date('Y-m-d H:i:s');
+        $groupComplaint->save();
+
+        return $this->response();
+    }
+
+    public function top($groupId)
+    {
+        $group = UserGroup::where(['user_id'=>$this->user_id,'group_id'=>$groupId])->first();
+        $group->is_top = $group->is_top ? 0 : 1;
+        $group->save();
+
+        $this->data['group_id'] = $group->group_id;
+        $this->data['is_top'] = $group->is_top;
+        return $this->response();
+    }
+
+    public function reasons()
+    {
+        $this->data = GroupComplaintReason::where('status',1)->get(['id','info']);
+        return $this->response();
+    }
+
+    public function search(SearchRequest $request)
+    {
+        $keyword = $request->key;
+        $this->data['person'] = User::where('phone',$keyword)->first(['id','phone','avatar','nickname as username']) ?: [];
+        $this->data['group'] = Group::where('union_id',$keyword)->first(['id','name','union_id','avatar']) ?: [];
+        return $this->response();
+    }
+
+    public function discovery(Request $request)
+    {
+        $num = $request->num ?: 8;
+        $cert_id = User::where('id',$this->user_id)->value('next');
+        $this->data = Group::where('cert_id',$cert_id)->take($num)->get(['id','name','union_id','avatar']);
         return $this->response();
     }
 

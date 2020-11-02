@@ -104,6 +104,7 @@ class WebsocketController extends Controller
     {
         $uid = $request->get('user_id');
         $tid = $request->get('to_user_id');
+        $type = $request->get('type');
         if (!self::checkUser($uid)){
             $this->msg = '你的用户不存在';
             return $this->response();
@@ -145,7 +146,7 @@ class WebsocketController extends Controller
         $data['user_id'] = $uid;
         $data['to_user_id'] = $tid;
         $data['content'] = $content;
-        $data['type'] = 1;
+        $data['type'] = $type ?: 1;
         $data['created_at'] = $date_time;
         $id = DB::table('messages')->insertGetId($data);
         $data_r['id'] = $id;

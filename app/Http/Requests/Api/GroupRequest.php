@@ -28,7 +28,7 @@ class GroupRequest extends FormRequest
             'users_id' => [
                 'required',
                 'string',
-                'min:13',
+                'min:3',
 //                'regex:/^(,){6,}$/'
             ],
             'name' => 'required|string',

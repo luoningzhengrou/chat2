@@ -36,6 +36,7 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('picture', 'WebsocketController@sendPicture');      //发送图片
     Route::post('ban', 'UserController@checkBan');                  //查询是否封禁
     Route::post('complaint', 'UserController@complaint');           //投诉
+    Route::post('complaint/user','UserController@userComplaint');   //投诉 新
     Route::post('banType', 'UserController@getBan');                //投诉类型
     Route::post('messageResponse', 'UserController@messageResponse');                //投诉类型
     // 群聊
@@ -55,6 +56,14 @@ Route::prefix('im')->namespace('Api')->group(function (){
     Route::post('group/out', 'GroupsController@outGroup')->name('group.out');               // 踢出群聊
     Route::post('group/leave', 'GroupsController@leaveGroup')->name('group.leave');         // 退出群聊
     Route::delete('group/destroy', 'GroupsController@destroy')->name('group.destroy');      // 解散群
+    Route::get('common/city', 'CommonController@city')->name('common.city');                // 获取城市
+    Route::get('my/group','GroupsController@myGroups')->name('my.group');                   // 我的群聊
+    Route::post('group/complaint', 'GroupsController@complaint')->name('group.complaint');  // 投诉
+    Route::patch('group/{groupId}/name', 'GroupsController@updateName')->name('group.name');// 修改群名称
+    Route::patch('group/{groupId}/top', 'GroupsController@top')->name('group.top');         // 群聊置顶
+    Route::get('reasons', 'GroupsController@reasons')->name('group.reasons');               // 获取投诉类型
+    Route::get('search', 'GroupsController@search')->name('group.search');                  // 搜索 整合搜索个人和群
+    Route::get('discovery', 'GroupsController@discovery')->name('group.discovery');         // 群推荐
 });
 
 // 推送接口
